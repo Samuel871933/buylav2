@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdftotext:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm --filter @buyla/web build:*)",
+      "Bash(mysql:*)",
+      "Bash(mysqld:*)",
+      "Bash(tasklist:*)",
+      "Bash(DATABASE_URL=\"mysql://root:@localhost:3306/buyla\" node:*)",
+      "Bash(pkill:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(npx next build)",
+      "Bash(DATABASE_URL=\"mysql://root:@localhost:3306/buyla\" pnpm seed:*)",
+      "Bash(/c/wamp64/bin/mysql/mysql9.1.0/bin/mysql.exe:*)",
+      "Bash(pnpm --filter @buyla/db seed:*)",
+      "Bash(DATABASE_URL=\"mysql://root:@localhost:3306/buyla\" pnpm --filter @buyla/db seed:*)",
+      "Bash(pnpm --filter @buyla/api build:*)",
+      "Bash(pnpm --filter api build:*)",
+      "Bash(pnpm --filter web build:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm --filter @buyla/shared add:*)",
+      "Bash(pnpm --filter @buyla/api add:*)",
+      "Bash(pnpm --filter @buyla/shared test:*)",
+      "Bash(pnpm --filter @buyla/api test:*)",
+      "Bash(pnpm test:*)"
+    ]
+  }
+}

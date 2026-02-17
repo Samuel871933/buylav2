@@ -1,0 +1,21 @@
+{
+  "name": "@buyla/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "migrate": "tsx src/migrate.ts",
+    "seed": "tsx src/seeders/seed.ts",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "sequelize": "^6.37.0",
+    "mysql2": "^3.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "tsx": "^4.16.0",
+    "eslint": "^8.57.0"
+  }
+}

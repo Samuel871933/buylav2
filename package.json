@@ -1,0 +1,17 @@
+{
+  "name": "buyla",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @buyla/web dev",
+    "dev:api": "pnpm --filter @buyla/api dev",
+    "build": "pnpm --filter @buyla/web build",
+    "build:api": "pnpm --filter @buyla/api build",
+    "test": "pnpm --filter @buyla/shared --filter @buyla/api test",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter @buyla/db migrate",
+    "db:seed": "pnpm --filter @buyla/db seed"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
