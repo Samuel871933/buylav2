@@ -12,10 +12,6 @@ export const routing = defineRouting({
       fr: '/rejoindre',
       en: '/join',
     },
-    '/produits': {
-      fr: '/produits',
-      en: '/products',
-    },
     '/connexion': {
       fr: '/connexion',
       en: '/login',
@@ -24,11 +20,18 @@ export const routing = defineRouting({
       fr: '/inscription',
       en: '/register',
     },
+    '/mot-de-passe-oublie': {
+      fr: '/mot-de-passe-oublie',
+      en: '/forgot-password',
+    },
+    '/reinitialiser-mot-de-passe': {
+      fr: '/reinitialiser-mot-de-passe',
+      en: '/reset-password',
+    },
     '/mon-cashback': {
       fr: '/mon-cashback',
       en: '/my-cashback',
     },
-    '/blog': '/blog',
     '/contact': '/contact',
     '/faq': '/faq',
     '/mentions-legales': {

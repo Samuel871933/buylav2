@@ -7,14 +7,11 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import {
   LayoutDashboard,
-  Package,
-  FolderTree,
   Globe,
   DoorOpen,
   Users,
   ArrowLeftRight,
   CreditCard,
-  FileText,
   Zap,
   Settings,
   ShoppingBag,
@@ -28,14 +25,11 @@ import {
 
 const adminNavItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/produits', icon: Package, label: 'Produits' },
-  { href: '/admin/categories', icon: FolderTree, label: 'Catégories' },
   { href: '/admin/programmes', icon: Globe, label: 'Programmes' },
   { href: '/admin/portails', icon: DoorOpen, label: 'Portails' },
   { href: '/admin/ambassadeurs', icon: Users, label: 'Ambassadeurs' },
   { href: '/admin/conversions', icon: ArrowLeftRight, label: 'Conversions' },
   { href: '/admin/paiements', icon: CreditCard, label: 'Paiements' },
-  { href: '/admin/contenu', icon: FileText, label: 'Contenu' },
   { href: '/admin/boosts', icon: Zap, label: 'Boosts' },
   { href: '/admin/fraude', icon: Shield, label: 'Fraude' },
   { href: '/admin/litiges', icon: AlertTriangle, label: 'Litiges' },

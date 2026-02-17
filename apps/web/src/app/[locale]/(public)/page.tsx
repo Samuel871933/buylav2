@@ -55,10 +55,10 @@ export default function HomePage() {
               {t('ctaJoin')}
             </Link>
             <Link
-              href="/produits"
+              href="/faq"
               className="rounded-xl border-2 border-white/80 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/10"
             >
-              {t('ctaShop')}
+              {t('ctaLearnMore')}
             </Link>
           </div>
         </div>
@@ -155,10 +155,10 @@ export default function HomePage() {
               {t('ctaJoin')}
             </Link>
             <Link
-              href="/produits"
+              href="/faq"
               className="rounded-xl border-2 border-white/80 px-8 py-3.5 font-semibold text-white transition hover:bg-white/10"
             >
-              {t('ctaShop')}
+              {t('ctaLearnMore')}
             </Link>
           </div>
         </div>

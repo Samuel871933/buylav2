@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { Link } from '@/i18n/routing';
 import { Container } from '@/components/layout/container';
 import { Card } from '@/components/ui/card';
 
@@ -32,12 +33,12 @@ const FAQS = [
   {
     question: 'Comment ça marche ?',
     answer:
-      'Inscrivez-vous gratuitement, obtenez votre lien de parrainage unique, partagez-le avec votre audience et touchez une commission sur chaque vente générée. Notre tableau de bord en temps réel vous permet de suivre vos clics, conversions et revenus.',
+      'Inscrivez-vous gratuitement, obtenez votre lien de parrainage unique, partagez-le avec votre audience et touchez une part de la commission d\'affiliation sur chaque vente générée. Notre tableau de bord en temps réel vous permet de suivre vos clics, conversions et revenus.',
   },
   {
     question: 'Combien puis-je gagner ?',
     answer:
-      'Vos gains dépendent de votre activité et de votre palier. Les commissions vont de 25 % à 30 % du montant de chaque vente. Il n\'y a pas de plafond : plus vous vendez, plus vous montez en palier et plus vous gagnez.',
+      'Vos gains dépendent de votre activité et de votre palier. Vous touchez de 25 % à 30 % de la commission d\'affiliation sur chaque vente. Il n\'y a pas de plafond : plus vous vendez, plus vous montez en palier et plus vous gagnez.',
   },
   {
     question: 'Comment suis-je payé ?',
@@ -47,12 +48,12 @@ const FAQS = [
   {
     question: 'Y a-t-il des frais ?',
     answer:
-      'Non, l\'inscription est entièrement gratuite. Il n\'y a aucun abonnement, aucune commission à payer, aucun frais caché. Vous commencez à gagner dès votre première vente.',
+      'Non, l\'inscription est entièrement gratuite. Il n\'y a aucun abonnement, aucune commission à payer, aucun frais caché. Vous commencez à gagner dès votre première commission d\'affiliation.',
   },
   {
     question: 'Puis-je parrainer des amis ?',
     answer:
-      'Oui ! Vous pouvez inviter d\'autres ambassadeurs via votre lien de parrainage spécial. Pour chaque ambassadeur actif que vous amenez, vous touchez un bonus sur leurs premières ventes. C\'est un vrai réseau qui travaille pour vous.',
+      'Oui ! Vous pouvez inviter d\'autres ambassadeurs via votre lien de parrainage spécial. Pour chaque ambassadeur actif que vous amenez, vous touchez un bonus sur leurs premières commissions. C\'est un vrai réseau qui travaille pour vous.',
   },
 ];
 
@@ -158,12 +159,12 @@ export default function RejoindreAmbassadeurPage() {
           <p className="mb-10 text-lg text-white/85 sm:text-xl">
             {t('subtitle')}
           </p>
-          <a
+          <Link
             href="/inscription"
             className="inline-block rounded-xl bg-white px-10 py-4 text-base font-bold text-primary-600 shadow-xl transition hover:bg-gray-50 hover:shadow-2xl active:scale-95"
           >
             {t('ctaHero')}
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -261,7 +262,7 @@ export default function RejoindreAmbassadeurPage() {
                       Ventes minimum
                     </th>
                     <th className="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-center">
-                      Commission
+                      Part de la commission
                     </th>
                   </tr>
                 </thead>
@@ -341,12 +342,12 @@ export default function RejoindreAmbassadeurPage() {
             Rejoignez des centaines d'ambassadeurs qui génèrent des revenus en
             partageant des produits qu'ils aiment.
           </p>
-          <a
+          <Link
             href="/inscription"
             className="inline-block rounded-xl bg-white px-10 py-4 text-base font-bold text-primary-600 shadow-xl transition hover:bg-gray-50 hover:shadow-2xl active:scale-95"
           >
             Devenir Ambassadeur gratuitement
-          </a>
+          </Link>
         </Container>
       </section>
     </div>

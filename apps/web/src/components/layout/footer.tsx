@@ -28,16 +28,6 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-gray-900">{t('footer.navigation')}</h3>
             <ul className="mt-3 space-y-2">
               <li>
-                <Link href="/produits" className="text-sm text-gray-500 transition hover:text-gray-700">
-                  {t('common.products')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-sm text-gray-500 transition hover:text-gray-700">
-                  {t('common.blog')}
-                </Link>
-              </li>
-              <li>
                 <Link href="/rejoindre" className="text-sm text-gray-500 transition hover:text-gray-700">
                   {t('common.join')}
                 </Link>

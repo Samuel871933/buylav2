@@ -23,17 +23,14 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
-          <Link href="/produits" className="text-sm font-medium text-gray-600 transition hover:text-gray-900">
-            {t('products')}
-          </Link>
-          <Link href="/blog" className="text-sm font-medium text-gray-600 transition hover:text-gray-900">
-            {t('blog')}
-          </Link>
           <Link href="/rejoindre" className="text-sm font-medium text-gray-600 transition hover:text-gray-900">
             {t('join')}
           </Link>
           <Link href="/faq" className="text-sm font-medium text-gray-600 transition hover:text-gray-900">
             {t('faq')}
+          </Link>
+          <Link href="/contact" className="text-sm font-medium text-gray-600 transition hover:text-gray-900">
+            {t('contact')}
           </Link>
         </div>
 
@@ -71,17 +68,14 @@ export function Navbar() {
         )}
       >
         <div className="space-y-1 px-4 py-3">
-          <Link href="/produits" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            {t('products')}
-          </Link>
-          <Link href="/blog" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            {t('blog')}
-          </Link>
           <Link href="/rejoindre" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             {t('join')}
           </Link>
           <Link href="/faq" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             {t('faq')}
+          </Link>
+          <Link href="/contact" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            {t('contact')}
           </Link>
           <hr className="my-2" />
           <Link href="/connexion" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">

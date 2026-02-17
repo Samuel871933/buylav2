@@ -15,6 +15,8 @@ const publicPages = [
   '/cgv',
   '/confidentialite',
   '/cookies',
+  '/inscription',
+  '/connexion',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
