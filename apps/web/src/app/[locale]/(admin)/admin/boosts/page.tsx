@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Power, Pencil, Zap } from 'lucide-react';
+import { Plus, Pencil, Zap, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { DataTable, Column } from '@/components/data/data-table';
 import { Badge } from '@/components/ui/badge';
+import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -14,15 +15,24 @@ import { API_URL } from '@/lib/constants';
 interface Boost {
   id: string;
   type: string;
-  valuePercent: number;
+  boost_value: number;
+  valuePercent?: number;
+  user_id?: string | null;
   ambassadorId?: string | null;
+  user?: { id: string; firstname: string; lastname: string; email: string } | null;
   ambassadorName?: string | null;
-  startDate: string;
-  endDate: string;
-  usageCount: number;
+  start_date: string;
+  startDate?: string;
+  end_date?: string | null;
+  endDate?: string;
+  usage_count: number;
+  usageCount?: number;
+  max_uses?: number | null;
   maxUsage?: number | null;
-  status: string;
-  createdAt: string;
+  is_active: boolean;
+  status?: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 interface AmbassadorOption {
@@ -39,25 +49,32 @@ type FormData = {
   maxUsage: string;
 };
 
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const EMPTY_FORM: FormData = {
-  type: 'commission',
+  type: 'ambassador_rate',
   valuePercent: '',
   ambassadorId: '',
-  startDate: '',
+  startDate: todayStr(),
   endDate: '',
   maxUsage: '',
 };
 
 const BOOST_TYPE_OPTIONS = [
-  { value: 'commission', label: 'Commission' },
-  { value: 'cashback', label: 'Cashback' },
-  { value: 'referral', label: 'Parrainage' },
+  { value: 'ambassador_rate', label: 'Commission' },
+  { value: 'buyer_cashback', label: 'Cashback' },
+  { value: 'sponsor_rate', label: 'Parrainage' },
 ];
 
 function getBoostTypeLabel(type: string): string {
   switch (type) {
+    case 'ambassador_rate':
     case 'commission': return 'Commission';
+    case 'buyer_cashback':
     case 'cashback': return 'Cashback';
+    case 'sponsor_rate':
     case 'referral': return 'Parrainage';
     default: return type;
   }
@@ -108,7 +125,9 @@ export default function AdminBoostsPage() {
   const [editingBoost, setEditingBoost] = useState<Boost | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [confirmDeactivate, setConfirmDeactivate] = useState<Boost | null>(null);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Boost | null>(null);
 
   // Fetch ambassadors for select
   useEffect(() => {
@@ -126,15 +145,16 @@ export default function AdminBoostsPage() {
   }, []);
 
   // Fetch boosts
-  const fetchBoosts = useCallback(async () => {
-    setLoading(true);
+  const fetchBoosts = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       const json = await fetchAdmin(`/api/admin/boosts?${params}`);
       const result = json.data ?? json;
       setBoosts(Array.isArray(result) ? result : result.boosts ?? []);
-      setTotalPages(result.totalPages ?? 1);
-      setTotal(result.total ?? (Array.isArray(result) ? result.length : 0));
+      const pag = json.pagination ?? result;
+      setTotalPages(pag.totalPages ?? 1);
+      setTotal(pag.total ?? (Array.isArray(result) ? result.length : 0));
     } catch {
       setBoosts([]);
     } finally {
@@ -149,20 +169,23 @@ export default function AdminBoostsPage() {
   // Open create modal
   const openCreate = useCallback(() => {
     setEditingBoost(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, startDate: todayStr() });
     setModalOpen(true);
   }, []);
 
   // Open edit modal
   const openEdit = useCallback((b: Boost) => {
     setEditingBoost(b);
+    const startStr = b.start_date || b.startDate || '';
+    const endStr = b.end_date || b.endDate || '';
+    const maxVal = b.max_uses ?? b.maxUsage;
     setForm({
       type: b.type,
-      valuePercent: String(b.valuePercent),
-      ambassadorId: b.ambassadorId ?? '',
-      startDate: b.startDate ? b.startDate.slice(0, 10) : '',
-      endDate: b.endDate ? b.endDate.slice(0, 10) : '',
-      maxUsage: b.maxUsage != null ? String(b.maxUsage) : '',
+      valuePercent: String(b.boost_value ?? b.valuePercent ?? 0),
+      ambassadorId: b.user_id || b.ambassadorId || '',
+      startDate: startStr ? startStr.slice(0, 10) : '',
+      endDate: endStr ? endStr.slice(0, 10) : '',
+      maxUsage: maxVal != null ? String(maxVal) : '',
     });
     setModalOpen(true);
   }, []);
@@ -173,11 +196,11 @@ export default function AdminBoostsPage() {
     try {
       const body = JSON.stringify({
         type: form.type,
-        valuePercent: parseFloat(form.valuePercent) || 0,
-        ambassadorId: form.ambassadorId || null,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-        maxUsage: form.maxUsage ? parseInt(form.maxUsage, 10) : null,
+        boost_value: parseFloat(form.valuePercent) || 0,
+        user_id: form.ambassadorId || null,
+        start_date: form.startDate || todayStr(),
+        end_date: form.endDate || null,
+        max_uses: form.maxUsage ? parseInt(form.maxUsage, 10) : null,
       });
 
       if (editingBoost) {
@@ -193,7 +216,7 @@ export default function AdminBoostsPage() {
       }
 
       setModalOpen(false);
-      fetchBoosts();
+      fetchBoosts(true);
     } catch {
       // Keep modal open
     } finally {
@@ -201,33 +224,54 @@ export default function AdminBoostsPage() {
     }
   }, [form, editingBoost, fetchBoosts]);
 
-  // Deactivate / Activate
-  const handleDeactivate = useCallback(
+  // Toggle active / inactive (optimistic update)
+  const handleToggleStatus = useCallback(
     async (b: Boost) => {
+      const newValue = !b.is_active;
+      // Optimistic: update local state immediately
+      setBoosts((prev) =>
+        prev.map((item) => (item.id === b.id ? { ...item, is_active: newValue } : item)),
+      );
       try {
-        const newStatus = b.status === 'active' ? 'inactive' : 'active';
         await fetchAdmin(`/api/admin/boosts/${b.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ is_active: newValue }),
         });
-        fetchBoosts();
       } catch {
-        // Silently fail
-      } finally {
-        setConfirmDeactivate(null);
+        // Rollback on error
+        setBoosts((prev) =>
+          prev.map((item) => (item.id === b.id ? { ...item, is_active: !newValue } : item)),
+        );
       }
     },
-    [fetchBoosts],
+    [],
   );
+
+  // Delete
+  const handleDelete = useCallback(async (b: Boost) => {
+    setBoosts((prev) => prev.filter((item) => item.id !== b.id));
+    setDeleteTarget(null);
+    try {
+      await fetchAdmin(`/api/admin/boosts/${b.id}`, { method: 'DELETE' });
+    } catch {
+      fetchBoosts(true);
+    }
+  }, [fetchBoosts]);
 
   // Boost status helper
   function getBoostStatus(boost: Boost): { label: string; variant: 'success' | 'default' | 'warning' | 'danger' } {
-    if (boost.status === 'inactive') return { label: 'Inactif', variant: 'default' };
+    if (!boost.is_active) return { label: 'Inactif', variant: 'default' };
     const now = new Date();
-    const start = new Date(boost.startDate);
-    const end = new Date(boost.endDate);
-    if (now < start) return { label: 'Planifie', variant: 'warning' };
-    if (now > end) return { label: 'Expire', variant: 'danger' };
+    const startStr = boost.start_date || boost.startDate;
+    const endStr = boost.end_date || boost.endDate;
+    if (startStr) {
+      const start = new Date(startStr);
+      if (now < start) return { label: 'Planifie', variant: 'warning' };
+    }
+    if (endStr) {
+      const end = new Date(endStr);
+      if (now > end) return { label: 'Expire', variant: 'danger' };
+    }
     return { label: 'Actif', variant: 'success' };
   }
 
@@ -251,59 +295,79 @@ export default function AdminBoostsPage() {
       ),
     },
     {
-      key: 'valuePercent',
+      key: 'boost_value',
       header: 'Valeur %',
       sortable: true,
-      render: (v) => (
-        <span className="font-semibold text-primary-600">+{v}%</span>
+      render: (v, row) => (
+        <span className="font-semibold text-primary-600">+{v ?? row.valuePercent ?? 0}%</span>
       ),
     },
     {
-      key: 'ambassadorName',
+      key: 'user',
       header: 'Ambassadeur',
-      render: (v) =>
-        v ? (
-          <span>{v}</span>
+      render: (_v, row) => {
+        const userName = row.user
+          ? `${row.user.firstname || ''} ${row.user.lastname || ''}`.trim() || row.user.email
+          : row.ambassadorName;
+        return userName ? (
+          <span>{userName}</span>
         ) : (
           <Badge variant="info" size="sm">
             Global
           </Badge>
-        ),
+        );
+      },
     },
     {
-      key: 'startDate',
+      key: 'start_date',
       header: 'Debut',
       sortable: true,
-      render: (v) => <span className="text-gray-500">{formatDate(v)}</span>,
+      render: (v, row) => <span className="text-gray-500">{formatDate(v || row.startDate)}</span>,
     },
     {
-      key: 'endDate',
+      key: 'end_date',
       header: 'Fin',
       sortable: true,
-      render: (v) => <span className="text-gray-500">{formatDate(v)}</span>,
+      render: (v, row) => {
+        const d = v || row.endDate;
+        return d ? <span className="text-gray-500">{formatDate(d)}</span> : <span className="text-gray-400">-</span>;
+      },
     },
     {
-      key: 'usageCount',
+      key: 'usage_count',
       header: 'Utilisations',
       sortable: true,
-      render: (v, row) => (
-        <span className="text-gray-700">
-          {v?.toLocaleString('fr-FR') ?? 0}
-          {row.maxUsage != null && (
-            <span className="text-gray-400"> / {row.maxUsage}</span>
-          )}
-        </span>
-      ),
+      render: (v, row) => {
+        const count = v ?? row.usageCount ?? 0;
+        const max = row.max_uses ?? row.maxUsage;
+        return (
+          <span className="text-gray-700">
+            {count?.toLocaleString('fr-FR') ?? 0}
+            {max != null && (
+              <span className="text-gray-400"> / {max}</span>
+            )}
+          </span>
+        );
+      },
     },
     {
-      key: 'status',
-      header: 'Statut',
+      key: 'is_active',
+      header: 'Actif',
       render: (_v, row) => {
         const s = getBoostStatus(row);
+        const isExpiredOrPlanned = s.label === 'Expire' || s.label === 'Planifie';
         return (
-          <Badge variant={s.variant} size="sm">
-            {s.label}
-          </Badge>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Toggle
+              checked={!!row.is_active}
+              onChange={() => handleToggleStatus(row)}
+            />
+            {isExpiredOrPlanned && (
+              <Badge variant={s.variant} size="sm">
+                {s.label}
+              </Badge>
+            )}
+          </div>
         );
       },
     },
@@ -320,11 +384,11 @@ export default function AdminBoostsPage() {
             <Pencil className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setConfirmDeactivate(row)}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-amber-600"
-            title={row.status === 'active' ? 'Desactiver' : 'Activer'}
+            onClick={() => setDeleteTarget(row)}
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            title="Supprimer"
           >
-            <Power className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ),
@@ -419,31 +483,29 @@ export default function AdminBoostsPage() {
         </div>
       </Modal>
 
-      {/* Confirm Deactivate Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={!!confirmDeactivate}
-        onClose={() => setConfirmDeactivate(null)}
-        title={confirmDeactivate?.status === 'active' ? 'Desactiver le boost' : 'Activer le boost'}
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Confirmer la suppression"
         size="sm"
       >
-        <p className="text-sm text-gray-600">
-          {confirmDeactivate?.status === 'active'
-            ? `Voulez-vous desactiver ce boost de +${confirmDeactivate?.valuePercent}% ${getBoostTypeLabel(confirmDeactivate?.type ?? '')} ?`
-            : `Voulez-vous reactiver ce boost de +${confirmDeactivate?.valuePercent}% ${getBoostTypeLabel(confirmDeactivate?.type ?? '')} ?`}
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={() => setConfirmDeactivate(null)}>
-            Annuler
-          </Button>
-          <Button
-            variant={confirmDeactivate?.status === 'active' ? 'danger' : 'primary'}
-            size="sm"
-            onClick={() => confirmDeactivate && handleDeactivate(confirmDeactivate)}
-          >
-            {confirmDeactivate?.status === 'active' ? 'Desactiver' : 'Activer'}
-          </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Voulez-vous vraiment supprimer le boost{' '}
+            <strong>{deleteTarget ? `${getBoostTypeLabel(deleteTarget.type)} +${deleteTarget.boost_value ?? deleteTarget.valuePercent ?? 0}%` : ''}</strong> ?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)}>
+              Annuler
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Supprimer
+            </Button>
+          </div>
         </div>
       </Modal>
+
     </div>
   );
 }

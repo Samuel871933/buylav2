@@ -6,8 +6,10 @@ export default function CgvPage() {
   const t = useTranslations('cgv');
 
   return (
-    <div className="py-12">
-      <Container className="max-w-4xl">
+    <div className="relative overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <Container className="relative max-w-4xl">
         <PageHeader
           title={t('title')}
           description={t('lastUpdated')}
@@ -15,117 +17,117 @@ export default function CgvPage() {
 
         <div className="prose prose-gray max-w-none mt-10">
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">1. Champ d'application</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">1. Description du service</h2>
           <p className="text-gray-600 leading-relaxed">
-            Les présentes Conditions Générales de Vente (CGV) s'appliquent à toutes les ventes de produits réalisées sur le site Buyla (buyla.fr), exploité par Buyla SAS (42 rue de la Paix, 75002 Paris — SIRET&nbsp;: 123 456 789 00012), dans le cadre de son activité de dropshipping. Tout achat effectué sur le Site implique l'acceptation sans réserve des présentes CGV par le client.
+            Buyla (buyla.fr), exploité par Buyla SAS (42 rue de la Paix, 75002 Paris — SIRET&nbsp;: 123 456 789 00012), est une plateforme d'affiliation. Buyla <strong>ne vend aucun produit</strong> et n'opère aucune activité de commerce en ligne. Le service consiste à mettre à disposition de ses utilisateurs des liens d'affiliation provenant de réseaux partenaires (Amazon, AWIN, Affilae, Booking, NutriProfits, Naturecan et autres), permettant aux ambassadeurs de générer des commissions et aux acheteurs de bénéficier d'un programme de cashback.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Toute utilisation du site Buyla implique l'acceptation sans réserve des présentes Conditions Générales du Service d'Affiliation.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">2. Produits et disponibilité</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">2. Rôle d'intermédiaire</h2>
           <p className="text-gray-600 leading-relaxed">
-            Buyla opère en tant qu'intermédiaire de vente en dropshipping. Les produits sont expédiés directement par des fournisseurs partenaires sélectionnés. Les offres présentées sur le Site sont valables dans la limite des stocks disponibles. En cas d'indisponibilité d'un produit après commande, le client sera informé par email dans les 48 heures et remboursé intégralement dans un délai de 14 jours.
+            Buyla agit exclusivement en qualité d'intermédiaire. Lorsqu'un utilisateur clique sur un lien d'affiliation présent sur la plateforme, il est redirigé vers le site du partenaire concerné (par exemple Amazon, Fnac, Sephora, Zalando, Decathlon, Booking, etc.). L'achat est alors effectué directement sur le site du partenaire, selon les conditions générales de vente de ce dernier.
           </p>
           <p className="text-gray-600 leading-relaxed">
-            Les photographies et descriptions des produits sont fournies à titre indicatif. De légères variations de couleur peuvent exister en raison des paramètres d'affichage des écrans.
-          </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">3. Prix</h2>
-          <p className="text-gray-600 leading-relaxed">
-            Les prix sont indiqués en euros (€) toutes taxes comprises (TTC), hors frais de livraison. Les frais de livraison sont indiqués avant la validation définitive de la commande. Buyla SAS se réserve le droit de modifier ses prix à tout moment. Les prix applicables sont ceux en vigueur au moment de la validation de la commande par le client.
-          </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">4. Commande</h2>
-          <p className="text-gray-600 leading-relaxed">
-            Pour passer commande, le client doit&nbsp;:
+            Buyla SAS n'intervient à aucun moment dans&nbsp;:
           </p>
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
-            <li>Sélectionner le(s) produit(s) souhaité(s) et les ajouter au panier.</li>
-            <li>Renseigner ses coordonnées de livraison et de facturation.</li>
-            <li>Choisir son mode de paiement.</li>
-            <li>Valider sa commande après vérification du récapitulatif.</li>
+            <li>La vente, la facturation ou l'encaissement des produits ou services achetés chez les partenaires.</li>
+            <li>La gestion des stocks, la disponibilité des produits ou la fixation des prix.</li>
+            <li>La livraison, l'expédition ou le suivi des commandes.</li>
+            <li>Le service après-vente, les retours, échanges ou remboursements liés aux achats effectués chez les partenaires.</li>
           </ul>
-          <p className="text-gray-600 leading-relaxed">
-            Un email de confirmation est envoyé dès la validation du paiement. La vente est réputée conclue à réception de cet email de confirmation.
-          </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">5. Paiement sécurisé</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">3. Programme ambassadeur — Commissions</h2>
           <p className="text-gray-600 leading-relaxed">
-            Le paiement s'effectue en ligne via la plateforme sécurisée <strong>Stripe</strong>, certifiée PCI-DSS. Les modes de paiement acceptés sont&nbsp;:
+            Les ambassadeurs inscrits sur Buyla peuvent partager des liens d'affiliation auprès de leur audience. Lorsqu'un achat est réalisé via l'un de ces liens sur un site partenaire, l'ambassadeur perçoit une commission calculée en pourcentage du montant de la vente validée par le réseau d'affiliation partenaire.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Le taux de commission varie selon&nbsp;:
           </p>
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
-            <li>Carte bancaire (Visa, Mastercard, American Express)</li>
-            <li>Apple Pay et Google Pay (selon disponibilité)</li>
+            <li>Le réseau d'affiliation et le partenaire concerné.</li>
+            <li>La catégorie de produit ou de service.</li>
+            <li>Le palier de performance de l'ambassadeur (les paliers et leurs conditions sont détaillés dans l'espace ambassadeur).</li>
           </ul>
           <p className="text-gray-600 leading-relaxed">
-            Les données bancaires du client ne sont jamais stockées sur les serveurs de Buyla SAS. Toutes les transactions sont chiffrées via le protocole SSL/TLS. En cas de refus de paiement, la commande est automatiquement annulée.
+            Les commissions ne sont validées qu'après confirmation définitive de la vente par le réseau d'affiliation partenaire (c'est-à-dire après expiration du délai de rétractation légal applicable sur le site partenaire et validation par ce dernier). Buyla SAS ne peut être tenu responsable du refus de validation d'une commission par un réseau partenaire.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">6. Livraison</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">4. Programme cashback</h2>
           <p className="text-gray-600 leading-relaxed">
-            La livraison est effectuée à l'adresse indiquée par le client lors de sa commande. Les délais de livraison sont les suivants&nbsp;:
+            Buyla propose un programme de cashback permettant aux acheteurs inscrits de récupérer un pourcentage du montant de leurs achats effectués sur les sites partenaires via les liens d'affiliation Buyla. Le cashback est crédité sur le compte Buyla de l'utilisateur après validation définitive de la vente par le réseau d'affiliation partenaire.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Le taux de cashback varie selon le partenaire et la catégorie de produit. Les taux applicables sont affichés sur la plateforme au moment de la redirection. Buyla SAS se réserve le droit de modifier les taux de cashback à tout moment. Les taux applicables sont ceux affichés au moment du clic sur le lien d'affiliation.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Le cashback n'est pas applicable en cas d'annulation, de retour intégral ou de non-validation de la commande par le site partenaire.
+          </p>
+
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">5. Responsabilité limitée</h2>
+          <p className="text-gray-600 leading-relaxed">
+            Buyla SAS décline toute responsabilité concernant&nbsp;:
           </p>
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
-            <li><strong>Livraison standard&nbsp;:</strong> 7 à 14 jours ouvrés</li>
-            <li><strong>Livraison express (selon disponibilité)&nbsp;:</strong> 3 à 5 jours ouvrés</li>
+            <li>La qualité, la conformité, la disponibilité ou la description des produits et services vendus par les sites partenaires.</li>
+            <li>Les délais de livraison, les pertes ou dommages survenus lors du transport des commandes passées sur les sites partenaires.</li>
+            <li>Le service après-vente, les garanties, retours et remboursements relevant des sites partenaires.</li>
+            <li>Les modifications de prix, promotions ou conditions commerciales appliquées par les sites partenaires.</li>
+            <li>L'indisponibilité temporaire ou permanente des sites partenaires ou des réseaux d'affiliation.</li>
           </ul>
           <p className="text-gray-600 leading-relaxed">
-            Ces délais sont indicatifs et peuvent varier selon les fournisseurs et les transporteurs. En cas de retard significatif, le client sera informé par email. Les risques liés au transport sont transférés au client dès la remise du colis au transporteur.
-          </p>
-          <p className="text-gray-600 leading-relaxed">
-            Buyla SAS livre uniquement en France métropolitaine, en Belgique, en Suisse et au Luxembourg. Pour toute autre destination, veuillez contacter notre service client.
+            En cas de litige relatif à un achat effectué sur un site partenaire, l'utilisateur doit s'adresser directement au service client du partenaire concerné. Buyla SAS pourra, à titre de courtoisie et sans obligation, assister l'utilisateur dans ses démarches.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">7. Droit de rétractation</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">6. Paiement des commissions et du cashback</h2>
           <p className="text-gray-600 leading-relaxed">
-            Conformément aux articles L.221-18 et suivants du Code de la consommation, le client dispose d'un délai de <strong>14 jours calendaires</strong> à compter de la réception du colis pour exercer son droit de rétractation, sans avoir à justifier de motifs.
-          </p>
-          <p className="text-gray-600 leading-relaxed">
-            Pour exercer ce droit, le client doit notifier sa décision à Buyla SAS par email à retractation@buyla.fr ou via le formulaire disponible dans son espace client, avant l'expiration du délai de 14 jours.
-          </p>
-          <p className="text-gray-600 leading-relaxed">
-            Le remboursement sera effectué dans un délai de <strong>14 jours</strong> suivant la réception de la demande de rétractation (ou de la réception du produit retourné si antérieure), via le même moyen de paiement que celui utilisé pour l'achat.
-          </p>
-          <p className="text-gray-600 leading-relaxed">
-            Sont exclus du droit de rétractation les produits personnalisés, les produits périssables ou les produits descellés dont la nature ne permet pas le retour pour des raisons d'hygiène ou de protection de la santé.
-          </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">8. Retours et remboursements</h2>
-          <p className="text-gray-600 leading-relaxed">
-            En cas de retour (rétractation ou produit défectueux), le client doit&nbsp;:
+            Le versement des commissions ambassadeurs et du cashback acheteurs est soumis aux conditions suivantes&nbsp;:
           </p>
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
-            <li>Notifier Buyla SAS par email avant tout renvoi.</li>
-            <li>Retourner le produit dans son emballage d'origine, en parfait état, dans les 14 jours suivant la notification.</li>
-            <li>Joindre une copie de la confirmation de commande.</li>
+            <li><strong>Seuil minimum de retrait&nbsp;:</strong> le solde disponible doit atteindre un montant minimum de 10&nbsp;€ avant de pouvoir être retiré.</li>
+            <li><strong>Délai de validation&nbsp;:</strong> les commissions et le cashback sont crédités sur le compte Buyla de l'utilisateur uniquement après validation définitive par les réseaux d'affiliation partenaires. Ce délai varie généralement de 30 à 90 jours selon les partenaires.</li>
+            <li><strong>Mode de versement&nbsp;:</strong> les paiements sont effectués par virement bancaire ou via tout autre moyen de paiement mis à disposition sur la plateforme.</li>
+            <li><strong>Délai de versement&nbsp;:</strong> une fois la demande de retrait validée, le paiement est effectué sous 30 jours ouvrés maximum.</li>
           </ul>
           <p className="text-gray-600 leading-relaxed">
-            Les frais de retour sont à la charge du client, sauf en cas de produit défectueux ou non conforme, auquel cas Buyla SAS prendra en charge les frais de renvoi.
+            Buyla SAS se réserve le droit de suspendre ou d'annuler le versement de commissions ou de cashback en cas de fraude avérée, d'utilisation abusive du service ou de non-respect des présentes conditions.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">9. Garanties</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">7. Obligations de l'utilisateur</h2>
           <p className="text-gray-600 leading-relaxed">
-            Tous les produits vendus sur Buyla bénéficient&nbsp;:
+            L'utilisateur s'engage à&nbsp;:
           </p>
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
-            <li>De la <strong>garantie légale de conformité</strong> (articles L.217-4 à L.217-14 du Code de la consommation) pendant 2 ans à compter de la livraison.</li>
-            <li>De la <strong>garantie contre les vices cachés</strong> (articles 1641 à 1648 du Code civil).</li>
+            <li>Fournir des informations exactes et à jour lors de son inscription.</li>
+            <li>Ne pas utiliser de méthodes frauduleuses pour générer des clics ou des ventes artificiels (auto-clics abusifs, bots, spam, etc.).</li>
+            <li>Respecter les conditions d'utilisation des réseaux d'affiliation partenaires.</li>
+            <li>Ne pas dénigrer les partenaires ou la plateforme Buyla dans le cadre de ses activités de promotion.</li>
           </ul>
           <p className="text-gray-600 leading-relaxed">
-            En cas de défaut de conformité, le client peut demander le remplacement ou la réparation du produit, ou, si ces solutions sont impossibles, un remboursement.
+            Tout manquement à ces obligations pourra entraîner la suspension ou la suppression du compte de l'utilisateur, ainsi que l'annulation des commissions et du cashback en attente.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">10. Cashback acheteur</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">8. Propriété intellectuelle</h2>
           <p className="text-gray-600 leading-relaxed">
-            Buyla propose un programme de cashback permettant aux acheteurs de récupérer un pourcentage de leurs achats sous forme de crédit utilisable sur les prochaines commandes. Le cashback est crédité après la période de rétractation légale (14 jours). Les conditions détaillées sont disponibles dans la section cashback de l'espace client.
+            L'ensemble des éléments constituant le site Buyla (textes, graphismes, logos, images, logiciels, base de données, architecture du site) est la propriété exclusive de Buyla SAS ou de ses partenaires et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Toute reproduction, représentation, modification, publication ou adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite sans l'autorisation écrite préalable de Buyla SAS.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">11. Médiation de la consommation</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">9. Modification des conditions</h2>
           <p className="text-gray-600 leading-relaxed">
-            Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, Buyla SAS propose un dispositif de médiation de la consommation. En cas de litige non résolu avec notre service client, le consommateur peut saisir gratuitement le médiateur&nbsp;: <strong>MEDICYS</strong> — 73 boulevard de Clichy, 75009 Paris — www.medicys.fr — dans un délai d'un an à compter de sa réclamation écrite.
+            Buyla SAS se réserve le droit de modifier les présentes conditions à tout moment. Les utilisateurs seront informés de toute modification substantielle par email ou par notification sur la plateforme. La poursuite de l'utilisation du service après notification vaut acceptation des nouvelles conditions.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">12. Droit applicable</h2>
+          <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">10. Droit applicable et litiges</h2>
           <p className="text-gray-600 leading-relaxed">
-            Les présentes CGV sont régies par le droit français. En cas de litige, les parties s'engagent à rechercher une solution amiable avant tout recours judiciaire. À défaut, le tribunal compétent sera celui du domicile du défendeur ou, pour un consommateur, celui de son lieu de résidence.
+            Les présentes conditions sont régies par le droit français. En cas de litige relatif à l'utilisation du service d'affiliation Buyla, les parties s'engagent à rechercher une solution amiable avant tout recours judiciaire. À défaut de résolution amiable, le litige sera soumis aux tribunaux compétents de Paris.
+          </p>
+          <p className="text-gray-600 leading-relaxed">
+            Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, en cas de litige non résolu avec notre service client, le consommateur peut saisir gratuitement le médiateur&nbsp;: <strong>MEDICYS</strong> — 73 boulevard de Clichy, 75009 Paris — www.medicys.fr — dans un délai d'un an à compter de sa réclamation écrite.
           </p>
 
         </div>

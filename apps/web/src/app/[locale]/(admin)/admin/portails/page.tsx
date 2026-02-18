@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Power, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, ExternalLink, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { DataTable, Column } from '@/components/data/data-table';
-import { Badge } from '@/components/ui/badge';
+import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -13,12 +13,17 @@ import { API_URL } from '@/lib/constants';
 
 interface Portail {
   id: string;
-  slug: string;
-  name: string;
-  programmeId: string;
+  merchant_slug: string;
+  slug?: string;
+  display_name: string;
+  name?: string;
+  affiliate_program_id?: number;
+  programmeId?: string;
+  program?: { id: number; name: string; display_name: string; network: string };
   programmeName?: string;
-  status: string;
-  createdAt: string;
+  is_active: boolean;
+  created_at?: string;
+  createdAt?: string;
 }
 
 interface ProgrammeOption {
@@ -80,7 +85,9 @@ export default function AdminPortailsPage() {
   const [editingPortail, setEditingPortail] = useState<Portail | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [confirmDeactivate, setConfirmDeactivate] = useState<Portail | null>(null);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Portail | null>(null);
 
   // Fetch programmes for select
   useEffect(() => {
@@ -98,16 +105,17 @@ export default function AdminPortailsPage() {
   }, []);
 
   // Fetch portails
-  const fetchPortails = useCallback(async () => {
-    setLoading(true);
+  const fetchPortails = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       const json = await fetchAdmin(`/api/admin/portails?${params}`);
       const result = json.data ?? json;
       setPortails(Array.isArray(result) ? result : result.portails ?? []);
-      setTotalPages(result.totalPages ?? 1);
-      setTotal(result.total ?? (Array.isArray(result) ? result.length : 0));
+      const pag = json.pagination ?? result;
+      setTotalPages(pag.totalPages ?? 1);
+      setTotal(pag.total ?? (Array.isArray(result) ? result.length : 0));
     } catch {
       setPortails([]);
     } finally {
@@ -144,21 +152,22 @@ export default function AdminPortailsPage() {
   const openEdit = useCallback((p: Portail) => {
     setEditingPortail(p);
     setForm({
-      slug: p.slug,
-      name: p.name,
-      programmeId: p.programmeId,
+      slug: p.merchant_slug || p.slug || '',
+      name: p.display_name || p.name || '',
+      programmeId: String(p.affiliate_program_id || p.programmeId || ''),
     });
     setModalOpen(true);
   }, []);
 
   // Save
   const handleSave = useCallback(async () => {
+    if (!form.programmeId) return;
     setSaving(true);
     try {
       const body = JSON.stringify({
-        slug: form.slug,
-        name: form.name,
-        programmeId: form.programmeId,
+        merchant_slug: form.slug,
+        display_name: form.name,
+        affiliate_program_id: Number(form.programmeId),
       });
 
       if (editingPortail) {
@@ -174,7 +183,7 @@ export default function AdminPortailsPage() {
       }
 
       setModalOpen(false);
-      fetchPortails();
+      fetchPortails(true);
     } catch {
       // Keep modal open on error
     } finally {
@@ -182,24 +191,39 @@ export default function AdminPortailsPage() {
     }
   }, [form, editingPortail, fetchPortails]);
 
-  // Deactivate / Activate
-  const handleDeactivate = useCallback(
+  // Toggle active / inactive (optimistic update)
+  const handleToggleStatus = useCallback(
     async (p: Portail) => {
+      const newValue = !p.is_active;
+      // Optimistic: update local state immediately
+      setPortails((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, is_active: newValue } : item)),
+      );
       try {
-        const newStatus = p.status === 'active' ? 'inactive' : 'active';
         await fetchAdmin(`/api/admin/portails/${p.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ is_active: newValue }),
         });
-        fetchPortails();
       } catch {
-        // Silently fail
-      } finally {
-        setConfirmDeactivate(null);
+        // Rollback on error
+        setPortails((prev) =>
+          prev.map((item) => (item.id === p.id ? { ...item, is_active: !newValue } : item)),
+        );
       }
     },
-    [fetchPortails],
+    [],
   );
+
+  // Delete
+  const handleDelete = useCallback(async (p: Portail) => {
+    setPortails((prev) => prev.filter((item) => item.id !== p.id));
+    setDeleteTarget(null);
+    try {
+      await fetchAdmin(`/api/admin/portails/${p.id}`, { method: 'DELETE' });
+    } catch {
+      fetchPortails(true);
+    }
+  }, [fetchPortails]);
 
   // Search handler
   const handleSearch = useCallback((q: string) => {
@@ -210,36 +234,42 @@ export default function AdminPortailsPage() {
   // Columns
   const columns: Column<Portail>[] = [
     {
-      key: 'slug',
+      key: 'merchant_slug',
       header: 'Slug',
       sortable: true,
-      render: (v) => (
+      render: (v, row) => (
         <span className="inline-flex items-center gap-1 font-mono text-xs text-primary-600">
           <ExternalLink className="h-3 w-3" />
-          {v}
+          {v || row.slug}
         </span>
       ),
     },
     {
-      key: 'name',
+      key: 'display_name',
       header: 'Nom',
       sortable: true,
       render: (_v, row) => (
-        <span className="font-medium text-gray-900">{row.name}</span>
+        <span className="font-medium text-gray-900">{row.display_name || row.name}</span>
       ),
     },
     {
-      key: 'programmeName',
+      key: 'program',
       header: 'Programme lie',
-      render: (v) => v || <span className="text-gray-400">-</span>,
+      render: (_v, row) => {
+        const pName = row.program?.display_name || row.program?.name || row.programmeName;
+        return pName || <span className="text-gray-400">-</span>;
+      },
     },
     {
-      key: 'status',
-      header: 'Statut',
-      render: (v) => (
-        <Badge variant={v === 'active' ? 'success' : 'default'} size="sm">
-          {v === 'active' ? 'Actif' : 'Inactif'}
-        </Badge>
+      key: 'is_active',
+      header: 'Actif',
+      render: (_v, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Toggle
+            checked={!!row.is_active}
+            onChange={() => handleToggleStatus(row)}
+          />
+        </div>
       ),
     },
     {
@@ -255,11 +285,11 @@ export default function AdminPortailsPage() {
             <Pencil className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setConfirmDeactivate(row)}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-amber-600"
-            title={row.status === 'active' ? 'Desactiver' : 'Activer'}
+            onClick={() => setDeleteTarget(row)}
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            title="Supprimer"
           >
-            <Power className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ),
@@ -331,31 +361,29 @@ export default function AdminPortailsPage() {
         </div>
       </Modal>
 
-      {/* Confirm Deactivate Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={!!confirmDeactivate}
-        onClose={() => setConfirmDeactivate(null)}
-        title={confirmDeactivate?.status === 'active' ? 'Desactiver le portail' : 'Activer le portail'}
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Confirmer la suppression"
         size="sm"
       >
-        <p className="text-sm text-gray-600">
-          {confirmDeactivate?.status === 'active'
-            ? `Voulez-vous desactiver le portail "${confirmDeactivate?.name}" ?`
-            : `Voulez-vous reactiver le portail "${confirmDeactivate?.name}" ?`}
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={() => setConfirmDeactivate(null)}>
-            Annuler
-          </Button>
-          <Button
-            variant={confirmDeactivate?.status === 'active' ? 'danger' : 'primary'}
-            size="sm"
-            onClick={() => confirmDeactivate && handleDeactivate(confirmDeactivate)}
-          >
-            {confirmDeactivate?.status === 'active' ? 'Desactiver' : 'Activer'}
-          </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Voulez-vous vraiment supprimer le portail{' '}
+            <strong>{deleteTarget?.display_name || deleteTarget?.name}</strong> ?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)}>
+              Annuler
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Supprimer
+            </Button>
+          </div>
         </div>
       </Modal>
+
     </div>
   );
 }

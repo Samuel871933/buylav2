@@ -19,7 +19,8 @@ import { API_URL } from '@/lib/constants';
 type TabKey = 'personal' | 'payment' | 'security';
 
 interface UserProfile {
-  name: string;
+  firstname: string;
+  lastname: string;
   email: string;
   avatar_url?: string;
 }
@@ -132,7 +133,8 @@ export default function ProfilPage() {
   const [profileLoading, setProfileLoading] = useState(true);
 
   // Personal info edit
-  const [editName, setEditName] = useState('');
+  const [editFirstname, setEditFirstname] = useState('');
+  const [editLastname, setEditLastname] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameSuccess, setNameSuccess] = useState(false);
   const [nameError, setNameError] = useState('');
@@ -176,7 +178,8 @@ export default function ProfilPage() {
         if (cancelled) return;
         const data = json.data ?? json;
         setProfile(data);
-        setEditName(data.name || '');
+        setEditFirstname(data.firstname || '');
+        setEditLastname(data.lastname || '');
       } catch {
         // Profile may fail if not logged in
       } finally {
@@ -226,8 +229,8 @@ export default function ProfilPage() {
 
   // Save name
   const handleSaveName = useCallback(async () => {
-    if (!editName.trim()) {
-      setNameError('Le nom est requis.');
+    if (!editFirstname.trim() || !editLastname.trim()) {
+      setNameError('Le prénom et le nom sont requis.');
       return;
     }
     setSavingName(true);
@@ -236,10 +239,10 @@ export default function ProfilPage() {
     try {
       await fetchAuth('/api/ambassador/profile', {
         method: 'PUT',
-        body: JSON.stringify({ name: editName.trim() }),
+        body: JSON.stringify({ firstname: editFirstname.trim(), lastname: editLastname.trim() }),
       });
       setProfile((prev) =>
-        prev ? { ...prev, name: editName.trim() } : prev,
+        prev ? { ...prev, firstname: editFirstname.trim(), lastname: editLastname.trim() } : prev,
       );
       setNameSuccess(true);
       setTimeout(() => setNameSuccess(false), 3000);
@@ -252,7 +255,7 @@ export default function ProfilPage() {
     } finally {
       setSavingName(false);
     }
-  }, [editName]);
+  }, [editFirstname, editLastname]);
 
   // Save payout info
   const handleSavePayment = useCallback(async () => {
@@ -403,28 +406,40 @@ export default function ProfilPage() {
           <div className="mt-6 flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-accent-500 text-white">
               <span className="text-2xl font-bold">
-                {(profile?.name || 'A').charAt(0).toUpperCase()}
+                {(profile?.firstname || 'A').charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
               <p className="text-lg font-semibold text-gray-900">
-                {profile?.name}
+                {profile?.firstname} {profile?.lastname}
               </p>
               <p className="text-sm text-gray-500">{profile?.email}</p>
             </div>
           </div>
 
           <div className="mt-6 max-w-md space-y-4">
-            <Input
-              label="Nom"
-              value={editName}
-              onChange={(e) => {
-                setEditName(e.target.value);
-                setNameError('');
-                setNameSuccess(false);
-              }}
-              placeholder="Votre nom"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Prénom"
+                value={editFirstname}
+                onChange={(e) => {
+                  setEditFirstname(e.target.value);
+                  setNameError('');
+                  setNameSuccess(false);
+                }}
+                placeholder="Votre prénom"
+              />
+              <Input
+                label="Nom"
+                value={editLastname}
+                onChange={(e) => {
+                  setEditLastname(e.target.value);
+                  setNameError('');
+                  setNameSuccess(false);
+                }}
+                placeholder="Votre nom"
+              />
+            </div>
 
             <Input
               label="Email"
@@ -438,7 +453,7 @@ export default function ProfilPage() {
             )}
             {nameSuccess && (
               <p className="text-sm text-green-600">
-                Nom mis a jour avec succes.
+                Informations mises a jour avec succes.
               </p>
             )}
 
@@ -446,7 +461,7 @@ export default function ProfilPage() {
               size="sm"
               loading={savingName}
               onClick={handleSaveName}
-              disabled={editName.trim() === profile?.name}
+              disabled={editFirstname.trim() === profile?.firstname && editLastname.trim() === profile?.lastname}
             >
               Enregistrer
             </Button>

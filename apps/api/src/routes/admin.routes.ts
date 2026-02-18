@@ -149,6 +149,8 @@ router.get('/stats', async (_req, res) => {
 router.get('/conversions', async (req, res) => {
   try {
     const status = req.query.status as string | undefined;
+    const programmeId = (req.query.programmeId || req.query.program) as string | undefined;
+    const search = req.query.search as string | undefined;
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const offset = (page - 1) * limit;
@@ -159,13 +161,21 @@ router.get('/conversions', async (req, res) => {
       where.status = status;
     }
 
+    if (programmeId && !isNaN(Number(programmeId))) {
+      where.affiliate_program_id = Number(programmeId);
+    }
+
+    if (search) {
+      where.order_ref = { [Op.like]: `%${search}%` };
+    }
+
     const { count, rows } = await Conversion.findAndCountAll({
       where,
       include: [
         {
           model: User,
           as: 'ambassador',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
         },
         {
           model: AffiliateProgram,

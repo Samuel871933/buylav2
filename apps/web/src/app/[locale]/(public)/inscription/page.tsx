@@ -1,23 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ShoppingBag, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { API_URL } from '@/lib/constants';
 
 export default function InscriptionPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('buyla_token');
+    const userRaw = localStorage.getItem('buyla_user');
+    if (token && userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        window.location.replace(user.role === 'admin' ? '/admin' : '/dashboard');
+      } catch { /* ignore corrupt data */ }
+    }
+  }, []);
 
   const refCode = searchParams.get('ref') || '';
 
   const [form, setForm] = useState({
-    name: '',
+    firstname: '',
+    lastname: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -30,7 +43,8 @@ export default function InscriptionPage() {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim() || form.name.trim().length < 2) errs.name = 'Au moins 2 caractères';
+    if (!form.firstname.trim() || form.firstname.trim().length < 2) errs.firstname = 'Au moins 2 caractères';
+    if (!form.lastname.trim() || form.lastname.trim().length < 2) errs.lastname = 'Au moins 2 caractères';
     if (!form.email.trim()) errs.email = t('emailRequired');
     if (form.password.length < 8) errs.password = t('passwordMin');
     else if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password))
@@ -56,7 +70,8 @@ export default function InscriptionPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          name: form.name.trim(),
+          firstname: form.firstname.trim(),
+          lastname: form.lastname.trim(),
           email: form.email.trim().toLowerCase(),
           password: form.password,
           referral_code: form.referral_code || undefined,
@@ -79,7 +94,7 @@ export default function InscriptionPage() {
       localStorage.setItem('buyla_token', data.data.access_token);
       localStorage.setItem('buyla_user', JSON.stringify(data.data.user));
 
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch {
       setServerError('Erreur de connexion au serveur.');
     } finally {
@@ -87,14 +102,25 @@ export default function InscriptionPage() {
     }
   };
 
+  const handleGoogleSuccess = useCallback(
+    (data: { user: Record<string, unknown>; access_token: string }) => {
+      localStorage.setItem('buyla_token', data.access_token);
+      localStorage.setItem('buyla_user', JSON.stringify(data.user));
+      window.location.href = '/dashboard';
+    },
+    [],
+  );
+
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center overflow-hidden px-4 py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-primary-600">
@@ -108,15 +134,26 @@ export default function InscriptionPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label={t('name')}
-            type="text"
-            placeholder="Jean Dupont"
-            value={form.name}
-            onChange={(e) => updateField('name', e.target.value)}
-            error={errors.name}
-            autoComplete="name"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label={t('firstname')}
+              type="text"
+              placeholder="Jean"
+              value={form.firstname}
+              onChange={(e) => updateField('firstname', e.target.value)}
+              error={errors.firstname}
+              autoComplete="given-name"
+            />
+            <Input
+              label={t('lastname')}
+              type="text"
+              placeholder="Dupont"
+              value={form.lastname}
+              onChange={(e) => updateField('lastname', e.target.value)}
+              error={errors.lastname}
+              autoComplete="family-name"
+            />
+          </div>
 
           <Input
             label={t('email')}
@@ -182,6 +219,12 @@ export default function InscriptionPage() {
             {t('registerButton')}
           </Button>
         </form>
+
+        <GoogleAuthButton
+          text="signup_with"
+          onSuccess={handleGoogleSuccess}
+          onError={(msg) => setServerError(msg)}
+        />
 
         {/* Link to login */}
         <p className="mt-6 text-center text-sm text-gray-500">

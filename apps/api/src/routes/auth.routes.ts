@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { User } from '@buyla/db';
+import { Op } from 'sequelize';
+import { User, PasswordResetToken } from '@buyla/db';
 import { registerSchema, loginSchema, forgotPasswordSchema, updateProfileSchema } from '@buyla/shared';
 import {
   hashPassword,
@@ -15,11 +16,11 @@ import { checkAuth } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { loginLimiter, registerLimiter, forgotPasswordLimiter } from '../middleware/rate-limit.middleware';
 import { onAmbassadorRegistered, onBuyerRegistered, onNewReferral } from '../lib/email-triggers';
+import { sendEmail } from '../lib/email-service';
+import { passwordReset as passwordResetTemplate } from '../lib/email-templates';
 
 const router = Router();
-
-// Store reset tokens in memory for MVP (move to DB/Redis in production)
-const resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
+const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
 
 // ── POST /api/auth/register ──
 router.post(
@@ -28,7 +29,7 @@ router.post(
   validate(registerSchema),
   async (req, res) => {
     try {
-      const { email, password, name, referral_code } = req.body;
+      const { email, password, firstname, lastname, referral_code } = req.body;
 
       // Check if email already exists
       const existing = await User.findOne({ where: { email } });
@@ -67,7 +68,8 @@ router.post(
       const user = await User.create({
         email,
         password_hash: passwordHash,
-        name,
+        firstname,
+        lastname,
         role: isAmbassador ? 'ambassador' : 'buyer',
         referral_code: userReferralCode,
         referred_by: referredBy,
@@ -90,7 +92,8 @@ router.post(
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          firstname: user.firstname,
+          lastname: user.lastname,
           role: user.role,
           referral_code: user.referral_code,
           tier: user.tier,
@@ -107,7 +110,7 @@ router.post(
 
       // Notify sponsor if referred
       if (referredBy) {
-        onNewReferral(referredBy, user.name).catch(console.error);
+        onNewReferral(referredBy, `${user.firstname} ${user.lastname}`).catch(console.error);
       }
     } catch (err) {
       console.error('Register error:', err);
@@ -160,7 +163,8 @@ router.post(
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          firstname: user.firstname,
+          lastname: user.lastname,
           role: user.role,
           referral_code: user.referral_code,
           tier: user.tier,
@@ -190,17 +194,27 @@ router.post(
       const user = await User.findOne({ where: { email } });
 
       if (user) {
+        // Invalidate any existing tokens for this user
+        await PasswordResetToken.destroy({
+          where: { user_id: user.id },
+        });
+
         const token = generateResetToken();
         const tokenHash = hashResetToken(token);
 
-        // Store hashed token with 1h expiry
-        resetTokens.set(tokenHash, {
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        // Store hashed token in DB with 1h expiry
+        await PasswordResetToken.create({
+          user_id: user.id,
+          token_hash: tokenHash,
+          expires_at: new Date(Date.now() + 60 * 60 * 1000),
         });
 
-        // TODO: Send email with reset link via Resend
-        // For now, log the token in dev
+        // Send reset email
+        const resetUrl = `${SITE_URL}/reinitialiser-mot-de-passe?token=${token}`;
+        const name = user.firstname || user.email;
+        const { subject, html } = passwordResetTemplate(name, resetUrl);
+        sendEmail({ to: user.email, subject, html, userId: user.id, templateName: 'password_reset' }).catch(console.error);
+
         if (process.env.NODE_ENV !== 'production') {
           console.log(`[DEV] Reset token for ${email}: ${token}`);
         }
@@ -225,24 +239,128 @@ router.post('/reset-password', async (req, res) => {
     }
 
     const tokenHash = hashResetToken(token);
-    const resetData = resetTokens.get(tokenHash);
+    const resetData = await PasswordResetToken.findOne({
+      where: {
+        token_hash: tokenHash,
+        used_at: null,
+        expires_at: { [Op.gt]: new Date() },
+      },
+    });
 
-    if (!resetData || resetData.expiresAt < new Date()) {
-      resetTokens.delete(tokenHash);
+    if (!resetData) {
       error(res, 'UNAUTHORIZED', 'Token invalide ou expiré', 401);
       return;
     }
 
     const passwordHash = await hashPassword(password);
-    await User.update({ password_hash: passwordHash }, { where: { id: resetData.userId } });
+    await User.update({ password_hash: passwordHash }, { where: { id: resetData.user_id } });
 
-    // Invalidate token (single use)
-    resetTokens.delete(tokenHash);
+    // Mark token as used (single use)
+    await resetData.update({ used_at: new Date() });
 
     success(res, { message: 'Mot de passe modifié avec succès.' });
   } catch (err) {
     console.error('Reset password error:', err);
     error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
+  }
+});
+
+// ── POST /api/auth/google ──
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      error(res, 'VALIDATION_ERROR', 'Google credential requis', 400);
+      return;
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      error(res, 'INTERNAL_ERROR', 'Google OAuth non configuré', 500);
+      return;
+    }
+
+    // Verify Google ID token
+    const { OAuth2Client } = await import('google-auth-library');
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      error(res, 'UNAUTHORIZED', 'Token Google invalide', 401);
+      return;
+    }
+
+    const { email, given_name, family_name, picture } = payload;
+
+    // Find or create user
+    let user = await User.findOne({ where: { email } });
+
+    if (user && !user.is_active) {
+      error(res, 'UNAUTHORIZED', 'Compte désactivé', 401);
+      return;
+    }
+
+    if (!user) {
+      // Generate unique referral code
+      let userReferralCode = generateReferralCode();
+      let attempts = 0;
+      while (await User.findOne({ where: { referral_code: userReferralCode } })) {
+        userReferralCode = generateReferralCode();
+        attempts++;
+        if (attempts > 10) {
+          error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
+          return;
+        }
+      }
+
+      user = await User.create({
+        email,
+        password_hash: null,
+        firstname: given_name || '',
+        lastname: family_name || '',
+        role: 'buyer',
+        referral_code: userReferralCode,
+        avatar_url: picture || null,
+      });
+
+      // Fire-and-forget welcome email
+      onBuyerRegistered(user.id).catch(console.error);
+    }
+
+    const jwtPayload = { userId: user.id, email: user.email, role: user.role };
+    const accessToken = generateAccessToken(jwtPayload);
+    const refreshToken = generateRefreshToken(jwtPayload);
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/auth',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    success(res, {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        role: user.role,
+        referral_code: user.referral_code,
+        tier: user.tier,
+        cashback_balance: user.cashback_balance,
+        total_sales: user.total_sales,
+        avatar_url: user.avatar_url,
+      },
+      access_token: accessToken,
+    });
+  } catch (err) {
+    console.error('Google auth error:', err);
+    error(res, 'UNAUTHORIZED', 'Authentification Google échouée', 401);
   }
 });
 
@@ -302,7 +420,8 @@ router.get('/me', checkAuth(), async (req, res) => {
     success(res, {
       id: user.id,
       email: user.email,
-      name: user.name,
+      firstname: user.firstname,
+      lastname: user.lastname,
       role: user.role,
       referral_code: user.referral_code,
       tier: user.tier,
@@ -325,11 +444,11 @@ router.put(
   validate(updateProfileSchema),
   async (req, res) => {
     try {
-      // Whitelist: only allow name, email, password, avatar_url
-      const { name, email, password, avatar_url } = req.body;
+      const { firstname, lastname, email, password, avatar_url } = req.body;
 
       const updateData: Record<string, unknown> = {};
-      if (name !== undefined) updateData.name = name;
+      if (firstname !== undefined) updateData.firstname = firstname;
+      if (lastname !== undefined) updateData.lastname = lastname;
       if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
 
       if (email !== undefined) {

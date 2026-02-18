@@ -81,9 +81,9 @@ router.post(
 
       // 7. Return result
       success(res, {
-        link,
-        merchant: program.display_name,
-        cashback: program.buyer_cashback_rate,
+        generated_url: link,
+        merchant_name: program.display_name,
+        cashback_rate: program.buyer_cashback_rate,
         portal_slug: portal.merchant_slug,
       });
     } catch (err) {

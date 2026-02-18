@@ -73,8 +73,10 @@ export default function ReinitialiserMotDePassePage() {
   // No token provided
   if (!token && !success) {
     return (
-      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center">
+      <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center overflow-hidden px-4 py-12">
+        <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+        <div className="relative w-full max-w-md text-center">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-amber-500" />
           <h1 className="text-xl font-bold text-gray-900">{t('resetInvalidToken')}</h1>
           <Link
@@ -89,8 +91,10 @@ export default function ReinitialiserMotDePassePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center overflow-hidden px-4 py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-primary-600">

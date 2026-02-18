@@ -24,6 +24,7 @@ const clickSchema = z.object({
   visitor_id: z.string().min(1, 'Visitor ID requis'),
   ambassador_ref: z.string().min(1, 'Code ambassadeur requis'),
   buyer_user_id: z.string().uuid().optional(),
+  product_url: z.string().url().optional(),
 });
 
 // ── Helpers ──
@@ -130,6 +131,7 @@ router.post(
         visitor_id,
         ambassador_ref,
         buyer_user_id,
+        product_url,
       } = req.body;
 
       // 1. Find ambassador by referral_code
@@ -151,7 +153,7 @@ router.post(
       }
 
       // 3. Build redirect URL
-      const { url: redirectUrl, subIdSent } = buildAffiliateRedirectUrl(program, ambassador_ref);
+      const { url: redirectUrl, subIdSent } = buildAffiliateRedirectUrl(program, ambassador_ref, product_url);
 
       // 4. Find latest visit for this visitor + ambassador (optional)
       const latestVisit = await Visit.findOne({

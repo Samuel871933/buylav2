@@ -166,14 +166,12 @@ export default function AdminConversionsPage() {
     setActionLoading(true);
     try {
       const { conversion, action } = actionModal;
-      let newStatus = '';
-      if (action === 'confirm') newStatus = 'confirmed';
-      if (action === 'pay') newStatus = 'paid';
-      if (action === 'cancel') newStatus = 'cancelled';
+      const body: Record<string, string> = {};
+      if (action === 'cancel') body.reason = "Annulee par l'administrateur";
 
-      await fetchAdmin(`/api/admin/conversions/${conversion.id}`, {
+      await fetchAdmin(`/api/admin/conversions/${conversion.id}/${action}`, {
         method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(body),
       });
 
       setActionModal(null);

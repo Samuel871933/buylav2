@@ -6,8 +6,10 @@ export default function ConfidentialitePage() {
   const t = useTranslations('confidentialite');
 
   return (
-    <div className="py-12">
-      <Container className="max-w-4xl">
+    <div className="relative overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <Container className="relative max-w-4xl">
         <PageHeader
           title={t('title')}
           description={t('lastUpdated')}
@@ -36,7 +38,7 @@ export default function ConfidentialitePage() {
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
             <li><strong>Données d'identification&nbsp;:</strong> nom, prénom, adresse email, numéro de téléphone (facultatif).</li>
             <li><strong>Données de compte&nbsp;:</strong> identifiant unique, mot de passe haché (bcrypt), rôle utilisateur (ambassadeur / acheteur).</li>
-            <li><strong>Données de transaction&nbsp;:</strong> historique des commandes, montants, statuts de paiement (aucune donnée bancaire brute n'est stockée — délégué à Stripe).</li>
+            <li><strong>Données de transaction&nbsp;:</strong> historique des conversions d'affiliation, commissions, statuts de paiement des commissions (aucune donnée bancaire brute n'est stockée — délégué à Stripe).</li>
             <li><strong>Données d'affiliation&nbsp;:</strong> code ambassadeur, liens de tracking, clics, conversions, commissions.</li>
             <li><strong>Données techniques&nbsp;:</strong> adresse IP hashée (SHA-256, non réversible), type de navigateur, système d'exploitation, pages visitées, durée des sessions.</li>
             <li><strong>Données de cookies&nbsp;:</strong> identifiant visiteur pseudonymisé, cookie de session d'authentification, cookie de tracking ambassadeur. Voir notre <a href="/cookies" className="text-primary-600 hover:underline">Politique cookies</a>.</li>
@@ -55,7 +57,7 @@ export default function ConfidentialitePage() {
               Conservation&nbsp;: durée d'activité du compte + 3 ans.
             </li>
             <li>
-              <strong>Traitement des commandes et paiements</strong> — Base légale&nbsp;: exécution d'un contrat (art. 6.1.b RGPD).
+              <strong>Traitement des commissions et paiements ambassadeurs</strong> — Base légale&nbsp;: exécution d'un contrat (art. 6.1.b RGPD).
               Conservation&nbsp;: 5 ans (obligations comptables légales).
             </li>
             <li>
@@ -91,7 +93,7 @@ export default function ConfidentialitePage() {
           <ul className="list-disc pl-6 text-gray-600 leading-relaxed space-y-1">
             <li><strong>Stripe Inc.</strong> — traitement sécurisé des paiements (DPA disponible sur stripe.com).</li>
             <li><strong>Vercel Inc.</strong> — hébergement de l'application (données en Europe via Vercel Edge Network).</li>
-            <li><strong>Fournisseurs dropshipping</strong> — transmission des données de livraison (nom, adresse de livraison uniquement).</li>
+            <li><strong>Réseaux d'affiliation partenaires</strong> — transmission des données de tracking nécessaires à l'attribution des commissions (identifiants pseudonymisés uniquement).</li>
             <li><strong>Administration fiscale française</strong> — en application de l'article 242 bis du CGI.</li>
             <li><strong>Personnel interne habilité</strong> — dans le cadre de leur mission (support, finance, technique).</li>
           </ul>

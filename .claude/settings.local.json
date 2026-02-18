@@ -25,7 +25,9 @@
       "Bash(pnpm --filter @buyla/api add:*)",
       "Bash(pnpm --filter @buyla/shared test:*)",
       "Bash(pnpm --filter @buyla/api test:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YjhmY2MzOC05MDBkLTQ1ZDEtOWQ0ZC1hMDJhOGQ5OGIxODYiLCJlbWFpbCI6InRlc3QtbGluazJAZGVidWcuY29tIiwicm9sZSI6ImFtYmFzc2Fkb3IiLCJpYXQiOjE3NzE0MjM0MjUsImV4cCI6MTc3MTUwOTgyNX0.Hg11LCd64bNEKEoXHsBPu-0pHIlwVT5ShTIUuDTA6oE\")"
     ]
   }
 }

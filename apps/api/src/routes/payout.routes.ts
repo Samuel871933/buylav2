@@ -41,65 +41,76 @@ function mapMethodToDb(method: string): 'stripe' | 'paypal' | 'bank' {
 //  VALIDATION SCHEMAS
 // ════════════════════════════════════════════════════════════════════════════
 
-const payoutInfoSchema = z.object({
-  preferred_method: z.enum(['stripe', 'paypal', 'bank_transfer'], {
-    errorMap: () => ({ message: 'Méthode de paiement invalide' }),
+const payoutInfoSchema = z.preprocess(
+  (raw: unknown) => {
+    const data = raw as Record<string, unknown>;
+    return {
+      ...data,
+      // Accept both frontend names (method/holder_name) and API names (preferred_method/account_holder_name)
+      preferred_method: data.preferred_method ?? data.method,
+      account_holder_name: data.account_holder_name ?? data.holder_name,
+    };
+  },
+  z.object({
+    preferred_method: z.enum(['stripe', 'paypal', 'bank_transfer'], {
+      errorMap: () => ({ message: 'Méthode de paiement invalide' }),
+    }),
+    paypal_email: z.string().email('Email PayPal invalide').optional(),
+    bank_name: z.string().min(1, 'Nom de la banque requis').optional(),
+    iban: z
+      .string()
+      .regex(
+        /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/,
+        'Format IBAN invalide (2 lettres, 2 chiffres, 10-30 caractères alphanumériques)',
+      )
+      .optional(),
+    bic: z.string().min(1, 'BIC requis').optional(),
+    account_holder_name: z.string().min(1, 'Nom du titulaire requis').optional(),
+    country: z
+      .string()
+      .length(2, 'Code pays ISO à 2 lettres requis')
+      .regex(/^[A-Z]{2}$/, 'Code pays invalide')
+      .optional(),
+  }).superRefine((data, ctx) => {
+    if (data.preferred_method === 'paypal' && !data.paypal_email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Email PayPal requis pour la méthode PayPal',
+        path: ['paypal_email'],
+      });
+    }
+    if (data.preferred_method === 'bank_transfer') {
+      if (!data.bank_name) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Nom de la banque requis pour le virement bancaire',
+          path: ['bank_name'],
+        });
+      }
+      if (!data.iban) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'IBAN requis pour le virement bancaire',
+          path: ['iban'],
+        });
+      }
+      if (!data.bic) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'BIC requis pour le virement bancaire',
+          path: ['bic'],
+        });
+      }
+      if (!data.account_holder_name) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Nom du titulaire requis pour le virement bancaire',
+          path: ['account_holder_name'],
+        });
+      }
+    }
   }),
-  paypal_email: z.string().email('Email PayPal invalide').optional(),
-  bank_name: z.string().min(1, 'Nom de la banque requis').optional(),
-  iban: z
-    .string()
-    .regex(
-      /^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/,
-      'Format IBAN invalide (2 lettres, 2 chiffres, 10-30 caractères alphanumériques)',
-    )
-    .optional(),
-  bic: z.string().min(1, 'BIC requis').optional(),
-  account_holder_name: z.string().min(1, 'Nom du titulaire requis').optional(),
-  country: z
-    .string()
-    .length(2, 'Code pays ISO à 2 lettres requis')
-    .regex(/^[A-Z]{2}$/, 'Code pays invalide')
-    .optional(),
-}).superRefine((data, ctx) => {
-  if (data.preferred_method === 'paypal' && !data.paypal_email) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Email PayPal requis pour la méthode PayPal',
-      path: ['paypal_email'],
-    });
-  }
-  if (data.preferred_method === 'bank_transfer') {
-    if (!data.bank_name) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Nom de la banque requis pour le virement bancaire',
-        path: ['bank_name'],
-      });
-    }
-    if (!data.iban) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'IBAN requis pour le virement bancaire',
-        path: ['iban'],
-      });
-    }
-    if (!data.bic) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'BIC requis pour le virement bancaire',
-        path: ['bic'],
-      });
-    }
-    if (!data.account_holder_name) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Nom du titulaire requis pour le virement bancaire',
-        path: ['account_holder_name'],
-      });
-    }
-  }
-});
+);
 
 const requestPayoutSchema = z.object({
   amount: z.number().positive('Le montant doit être positif'),
@@ -116,17 +127,22 @@ router.get('/info', async (req, res) => {
     const info = await PayoutInfo.findOne({ where: { user_id: userId } });
 
     if (!info) {
-      success(res, { payoutInfo: null });
+      success(res, null);
       return;
     }
 
-    // Return with masked IBAN
+    // Return flat fields matching frontend expectations
     const data = info.toJSON();
+    const method = data.method === 'bank' ? 'bank_transfer' : data.method;
     success(res, {
-      payoutInfo: {
-        ...data,
-        iban_encrypted: maskIban(data.iban_encrypted),
-      },
+      method,
+      iban: maskIban(data.iban_encrypted),
+      bic: data.bic || null,
+      holder_name: null,
+      bank_name: data.bank_name || null,
+      paypal_email: data.paypal_email || null,
+      is_verified: data.is_verified ?? false,
+      country: 'FR',
     });
   } catch (err) {
     console.error('Get payout info error:', err);
@@ -192,11 +208,16 @@ router.put('/info', validate(payoutInfoSchema), async (req, res) => {
     await info.reload();
 
     const result = info.toJSON();
+    const responseMethod = result.method === 'bank' ? 'bank_transfer' : result.method;
     success(res, {
-      payoutInfo: {
-        ...result,
-        iban_encrypted: maskIban(result.iban_encrypted),
-      },
+      method: responseMethod,
+      iban: maskIban(result.iban_encrypted),
+      bic: result.bic || null,
+      holder_name: null,
+      bank_name: result.bank_name || null,
+      paypal_email: result.paypal_email || null,
+      is_verified: result.is_verified ?? false,
+      country: 'FR',
     }, created ? 201 : 200);
   } catch (err) {
     console.error('Update payout info error:', err);
@@ -431,15 +452,14 @@ router.get('/earnings', async (req, res) => {
     const requestedPending = Number(requestedResult?.total ?? 0);
 
     success(res, {
-      earnings: {
-        pending,
-        confirmed,
-        paid,
-        total: pending + confirmed + paid,
-        available: confirmed - requestedPending,
-        sponsor_pending: Number(sponsorPendingResult?.total ?? 0),
-        sponsor_confirmed: Number(sponsorConfirmedResult?.total ?? 0),
-      },
+      pending,
+      confirmed,
+      total_paid: paid,
+      total: pending + confirmed + paid,
+      available: confirmed - requestedPending,
+      total_sponsor: Number(sponsorPendingResult?.total ?? 0) + Number(sponsorConfirmedResult?.total ?? 0),
+      sponsor_pending: Number(sponsorPendingResult?.total ?? 0),
+      sponsor_confirmed: Number(sponsorConfirmedResult?.total ?? 0),
     });
   } catch (err) {
     console.error('Earnings breakdown error:', err);

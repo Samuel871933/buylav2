@@ -1,17 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { useRouter } from 'next/navigation';
 import { ShoppingBag, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { API_URL } from '@/lib/constants';
 
 export default function ConnexionPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('buyla_token');
+    const userRaw = localStorage.getItem('buyla_user');
+    if (token && userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        window.location.replace(user.role === 'admin' ? '/admin' : '/dashboard');
+      } catch { /* ignore corrupt data */ }
+    }
+  }, []);
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -56,13 +67,9 @@ export default function ConnexionPage() {
       localStorage.setItem('buyla_token', data.data.access_token);
       localStorage.setItem('buyla_user', JSON.stringify(data.data.user));
 
-      // Redirect based on role
+      // Redirect based on role — use window.location for faster cross-layout navigation
       const role = data.data.user.role;
-      if (role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      window.location.href = role === 'admin' ? '/admin' : '/dashboard';
     } catch {
       setServerError('Erreur de connexion au serveur.');
     } finally {
@@ -70,14 +77,26 @@ export default function ConnexionPage() {
     }
   };
 
+  const handleGoogleSuccess = useCallback(
+    (data: { user: Record<string, unknown>; access_token: string }) => {
+      localStorage.setItem('buyla_token', data.access_token);
+      localStorage.setItem('buyla_user', JSON.stringify(data.user));
+      const role = data.user.role as string;
+      window.location.href = role === 'admin' ? '/admin' : '/dashboard';
+    },
+    [],
+  );
+
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center overflow-hidden px-4 py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-primary-600">
@@ -138,6 +157,12 @@ export default function ConnexionPage() {
             {t('loginButton')}
           </Button>
         </form>
+
+        <GoogleAuthButton
+          text="signin_with"
+          onSuccess={handleGoogleSuccess}
+          onError={(msg) => setServerError(msg)}
+        />
 
         {/* Link to register */}
         <p className="mt-6 text-center text-sm text-gray-500">

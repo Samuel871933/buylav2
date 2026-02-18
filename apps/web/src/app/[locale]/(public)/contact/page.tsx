@@ -18,8 +18,8 @@ interface ContactForm {
 
 const SUBJECTS = [
   'Question sur le programme ambassadeur',
-  'Problème avec ma commande',
-  'Demande de remboursement',
+  'Problème avec mes commissions',
+  'Problème avec mon cashback',
   'Question sur le cashback',
   'Signalement de fraude',
   'Presse / Partenariat',
@@ -83,8 +83,10 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="py-12">
-      <Container className="max-w-4xl">
+    <div className="relative overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <Container className="relative max-w-4xl">
         <PageHeader
           title={t('title')}
           description={t('description')}

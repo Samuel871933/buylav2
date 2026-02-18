@@ -62,7 +62,8 @@ router.get('/payouts', async (req, res) => {
     if (search) {
       userWhere = {
         [Op.or]: [
-          { name: { [Op.like]: `%${search}%` } },
+          { firstname: { [Op.like]: `%${search}%` } },
+          { lastname: { [Op.like]: `%${search}%` } },
           { email: { [Op.like]: `%${search}%` } },
         ],
       };
@@ -74,7 +75,7 @@ router.get('/payouts', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           where: userWhere,
           required: !!search,
         },
@@ -150,14 +151,12 @@ router.get('/payouts/summary', async (_req, res) => {
     }) as any;
 
     success(res, {
-      summary: {
-        totalPending: Number(ambassadorPendingResult?.count ?? 0),
-        totalPendingAmount: Number(ambassadorPendingResult?.total ?? 0),
-        totalCashbackPending: Number(cashbackPendingResult?.count ?? 0),
-        totalCashbackPendingAmount: Number(cashbackPendingResult?.total ?? 0),
-        totalPaidThisMonth: Number(paidThisMonthResult?.total ?? 0),
-        averagePayoutAmount: Number(Number(avgResult?.avg ?? 0).toFixed(2)),
-      },
+      pending_payouts_count: Number(ambassadorPendingResult?.count ?? 0),
+      pending_payouts_amount: Number(ambassadorPendingResult?.total ?? 0),
+      pending_cashback_count: Number(cashbackPendingResult?.count ?? 0),
+      pending_cashback_amount: Number(cashbackPendingResult?.total ?? 0),
+      paid_this_month: Number(paidThisMonthResult?.total ?? 0),
+      average_amount: Number(Number(avgResult?.avg ?? 0).toFixed(2)),
     });
   } catch (err) {
     console.error('Admin payouts summary error:', err);

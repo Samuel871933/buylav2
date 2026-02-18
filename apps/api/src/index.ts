@@ -17,13 +17,30 @@ import adminOperationsRoutes from './routes/admin-operations.routes';
 import payoutRoutes from './routes/payout.routes';
 import adminPayoutsRoutes from './routes/admin-payouts.routes';
 import { checkMaintenance } from './middleware/maintenance.middleware';
+import { csrfProtection, generateToken } from './middleware/csrf.middleware';
 import rateLimit from 'express-rate-limit';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // ── Security ──
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
+}));
 app.use(cors({
   origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
   credentials: true,
@@ -43,9 +60,18 @@ app.use(rateLimit({
 // Maintenance mode check
 app.use(checkMaintenance);
 
+// CSRF protection (double-submit cookie pattern)
+app.use(csrfProtection);
+
 // ── Routes ──
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
+});
+
+// CSRF token endpoint — frontend calls this to get the cookie + token
+app.get('/api/auth/csrf-token', (req, res) => {
+  const token = generateToken(req, res);
+  res.json({ success: true, data: { csrfToken: token } });
 });
 
 app.use('/api/auth', authRoutes);

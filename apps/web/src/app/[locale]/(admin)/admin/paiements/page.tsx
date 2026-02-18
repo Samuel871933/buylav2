@@ -270,23 +270,18 @@ export default function AdminPaiementsPage() {
     setActionLoading(true);
     try {
       const { payout, action } = actionModal;
-      let newStatus = '';
       const body: Record<string, string> = {};
 
-      if (action === 'process') {
-        newStatus = 'processing';
-      } else if (action === 'pay') {
-        newStatus = 'paid';
-        if (payReference.trim()) {
-          body.reference = payReference.trim();
-        }
+      // Map frontend action to API sub-route
+      let subRoute = action as string;
+      if (action === 'pay') {
+        subRoute = 'complete';
+        body.reference = payReference.trim() || `PAY-${payout.id}`;
       } else if (action === 'reject') {
-        newStatus = 'rejected';
+        body.reason = "Rejete par l'administrateur";
       }
 
-      body.status = newStatus;
-
-      await fetchAdmin(`/api/admin/payouts/${payout.id}`, {
+      await fetchAdmin(`/api/admin/payouts/${payout.id}/${subRoute}`, {
         method: 'PUT',
         body: JSON.stringify(body),
       });

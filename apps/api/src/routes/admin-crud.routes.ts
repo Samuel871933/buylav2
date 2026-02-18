@@ -101,7 +101,7 @@ const attributeSchema = z.object({
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── GET /api/admin/programs ──
-router.get('/programs', async (req, res) => {
+router.get('/programmes', async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
@@ -147,7 +147,7 @@ router.get('/programs', async (req, res) => {
 });
 
 // ── GET /api/admin/programs/:id ──
-router.get('/programs/:id', async (req, res) => {
+router.get('/programmes/:id', async (req, res) => {
   try {
     const program = await AffiliateProgram.findByPk(req.params.id, {
       attributes: {
@@ -188,7 +188,7 @@ router.get('/programs/:id', async (req, res) => {
 });
 
 // ── POST /api/admin/programs ──
-router.post('/programs', validate(programSchema), async (req, res) => {
+router.post('/programmes', validate(programSchema), async (req, res) => {
   try {
     const data = req.body as z.infer<typeof programSchema>;
 
@@ -217,7 +217,7 @@ router.post('/programs', validate(programSchema), async (req, res) => {
 });
 
 // ── PUT /api/admin/programs/:id ──
-router.put('/programs/:id', validate(programUpdateSchema), async (req, res) => {
+router.put('/programmes/:id', validate(programUpdateSchema), async (req, res) => {
   try {
     const program = await AffiliateProgram.findByPk(req.params.id);
     if (!program) {
@@ -248,7 +248,7 @@ router.put('/programs/:id', validate(programUpdateSchema), async (req, res) => {
 });
 
 // ── DELETE /api/admin/programs/:id ──
-router.delete('/programs/:id', async (req, res) => {
+router.delete('/programmes/:id', async (req, res) => {
   try {
     const program = await AffiliateProgram.findByPk(req.params.id);
     if (!program) {
@@ -256,20 +256,33 @@ router.delete('/programs/:id', async (req, res) => {
       return;
     }
 
+    // Check for dependencies
+    const portalCount = await RedirectPortal.count({ where: { affiliate_program_id: program.id } });
+    const conversionCount = await Conversion.count({ where: { affiliate_program_id: program.id } });
+    const clickCount = await OutboundClick.count({ where: { affiliate_program_id: program.id } });
+
+    if (portalCount > 0 || conversionCount > 0 || clickCount > 0) {
+      const deps: string[] = [];
+      if (portalCount > 0) deps.push(`${portalCount} portail(s)`);
+      if (conversionCount > 0) deps.push(`${conversionCount} conversion(s)`);
+      if (clickCount > 0) deps.push(`${clickCount} clic(s)`);
+      error(res, 'CONFLICT', `Impossible de supprimer : ce programme est lié à ${deps.join(', ')}. Désactivez-le à la place.`, 409);
+      return;
+    }
+
     const oldData = program.toJSON();
-    await program.update({ is_active: false });
+    await program.destroy();
 
     await AuditLog.create({
       admin_id: req.user!.userId,
-      action: 'soft_delete',
+      action: 'delete',
       entity_type: 'affiliate_program',
       entity_id: String(program.id),
       old_values: oldData,
-      new_values: { is_active: false },
       ip_address: req.ip || null,
     });
 
-    success(res, { message: 'Programme désactivé avec succès' });
+    success(res, { message: 'Programme supprimé avec succès' });
   } catch (err) {
     console.error('Admin delete program error:', err);
     error(res, 'INTERNAL_ERROR', 'Erreur lors de la suppression du programme', 500);
@@ -277,7 +290,7 @@ router.delete('/programs/:id', async (req, res) => {
 });
 
 // ── POST /api/admin/programs/:id/test ──
-router.post('/programs/:id/test', async (req, res) => {
+router.post('/programmes/:id/test', async (req, res) => {
   try {
     const program = await AffiliateProgram.findByPk(req.params.id);
     if (!program) {
@@ -319,7 +332,7 @@ router.post('/programs/:id/test', async (req, res) => {
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── GET /api/admin/portals ──
-router.get('/portals', async (req, res) => {
+router.get('/portails', async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
@@ -359,7 +372,7 @@ router.get('/portals', async (req, res) => {
 });
 
 // ── POST /api/admin/portals ──
-router.post('/portals', validate(portalSchema), async (req, res) => {
+router.post('/portails', validate(portalSchema), async (req, res) => {
   try {
     const data = req.body as z.infer<typeof portalSchema>;
 
@@ -398,7 +411,7 @@ router.post('/portals', validate(portalSchema), async (req, res) => {
 });
 
 // ── PUT /api/admin/portals/:id ──
-router.put('/portals/:id', validate(portalUpdateSchema), async (req, res) => {
+router.put('/portails/:id', validate(portalUpdateSchema), async (req, res) => {
   try {
     const portal = await RedirectPortal.findByPk(req.params.id);
     if (!portal) {
@@ -429,7 +442,7 @@ router.put('/portals/:id', validate(portalUpdateSchema), async (req, res) => {
 });
 
 // ── DELETE /api/admin/portals/:id ──
-router.delete('/portals/:id', async (req, res) => {
+router.delete('/portails/:id', async (req, res) => {
   try {
     const portal = await RedirectPortal.findByPk(req.params.id);
     if (!portal) {
@@ -438,19 +451,25 @@ router.delete('/portals/:id', async (req, res) => {
     }
 
     const oldData = portal.toJSON();
-    await portal.update({ is_active: false });
+
+    // Nullify outbound_clicks references (portal_id is nullable)
+    await OutboundClick.update(
+      { portal_id: null } as Record<string, unknown>,
+      { where: { portal_id: portal.id } },
+    );
+
+    await portal.destroy();
 
     await AuditLog.create({
       admin_id: req.user!.userId,
-      action: 'soft_delete',
+      action: 'delete',
       entity_type: 'redirect_portal',
       entity_id: String(portal.id),
       old_values: oldData,
-      new_values: { is_active: false },
       ip_address: req.ip || null,
     });
 
-    success(res, { message: 'Portail désactivé avec succès' });
+    success(res, { message: 'Portail supprimé avec succès' });
   } catch (err) {
     console.error('Admin delete portal error:', err);
     error(res, 'INTERNAL_ERROR', 'Erreur lors de la suppression du portail', 500);
@@ -475,13 +494,22 @@ router.get('/ambassadors', async (req, res) => {
 
     if (search) {
       where[Op.or as unknown as string] = [
-        { name: { [Op.like]: `%${search}%` } },
+        { firstname: { [Op.like]: `%${search}%` } },
+        { lastname: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
       ];
     }
 
-    if (tier && ['beginner', 'active', 'performer', 'expert', 'elite'].includes(tier)) {
-      where.tier = tier;
+    if (tier) {
+      // Accept both French frontend names and English DB names
+      const tierAliases: Record<string, string> = {
+        actif: 'active',
+        performant: 'performer',
+      };
+      const dbTier = tierAliases[tier] || tier;
+      if (['beginner', 'active', 'performer', 'expert', 'elite'].includes(dbTier)) {
+        where.tier = dbTier;
+      }
     }
 
     if (active === 'true') {
@@ -508,7 +536,20 @@ router.get('/ambassadors', async (req, res) => {
       offset,
     });
 
-    paginated(res, rows, { page, limit, total: count });
+    // Map to frontend-expected field names
+    const mapped = rows.map((u: any) => ({
+      id: u.id,
+      name: `${u.firstname || ''} ${u.lastname || ''}`.trim(),
+      email: u.email,
+      tier: u.tier,
+      salesCount: u.total_sales ?? 0,
+      referralsCount: Number(u.getDataValue('referral_count')) || 0,
+      createdAt: u.created_at,
+      status: u.is_active ? 'active' : 'inactive',
+      totalEarnings: 0,
+    }));
+
+    paginated(res, mapped, { page, limit, total: count });
   } catch (err) {
     console.error('Admin ambassadors list error:', err);
     error(res, 'INTERNAL_ERROR', 'Erreur lors de la récupération des ambassadeurs', 500);
@@ -535,7 +576,7 @@ router.get('/ambassadors/:id', async (req, res) => {
         {
           model: User,
           as: 'sponsor',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
         },
       ],
     });
@@ -570,7 +611,7 @@ router.get('/ambassadors/:id', async (req, res) => {
       }),
       User.findAll({
         where: { referred_by: req.params.id },
-        attributes: ['id', 'name', 'email', 'role', 'created_at'],
+        attributes: ['id', 'firstname', 'lastname', 'email', 'role', 'created_at'],
         order: [['created_at', 'DESC']],
         limit: 10,
       }),
@@ -675,7 +716,8 @@ router.get('/users', async (req, res) => {
 
     if (search) {
       where[Op.or as unknown as string] = [
-        { name: { [Op.like]: `%${search}%` } },
+        { firstname: { [Op.like]: `%${search}%` } },
+        { lastname: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
       ];
     }
@@ -708,7 +750,7 @@ router.get('/users/:id', async (req, res) => {
         {
           model: User,
           as: 'sponsor',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
         },
       ],
     });
@@ -806,13 +848,13 @@ router.get('/boosts', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'name'],
+          attributes: ['id', 'firstname', 'lastname'],
           required: false,
         },
       ],
@@ -943,6 +985,34 @@ router.put('/boosts/:id/deactivate', async (req, res) => {
   }
 });
 
+// ── DELETE /api/admin/boosts/:id ──
+router.delete('/boosts/:id', async (req, res) => {
+  try {
+    const boost = await CommissionBoost.findByPk(req.params.id);
+    if (!boost) {
+      error(res, 'NOT_FOUND', 'Boost introuvable', 404);
+      return;
+    }
+
+    const oldData = boost.toJSON();
+    await boost.destroy();
+
+    await AuditLog.create({
+      admin_id: req.user!.userId,
+      action: 'delete',
+      entity_type: 'commission_boost',
+      entity_id: String(boost.id),
+      old_values: oldData,
+      ip_address: req.ip || null,
+    });
+
+    success(res, { message: 'Boost supprimé avec succès' });
+  } catch (err) {
+    console.error('Admin delete boost error:', err);
+    error(res, 'INTERNAL_ERROR', 'Erreur lors de la suppression du boost', 500);
+  }
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 //  6. CONVERSIONS EXTENDED
 // ════════════════════════════════════════════════════════════════════════════
@@ -955,17 +1025,17 @@ router.get('/conversions/:id', async (req, res) => {
         {
           model: User,
           as: 'ambassador',
-          attributes: ['id', 'name', 'email', 'tier', 'referral_code'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'tier', 'referral_code'],
         },
         {
           model: User,
           as: 'sponsor',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
         },
         {
           model: User,
           as: 'buyer',
-          attributes: ['id', 'name', 'email', 'cashback_balance'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'cashback_balance'],
         },
         {
           model: AffiliateProgram,
@@ -1084,7 +1154,7 @@ router.put(
           {
             model: User,
             as: 'ambassador',
-            attributes: ['id', 'name', 'email'],
+            attributes: ['id', 'firstname', 'lastname', 'email'],
           },
           {
             model: AffiliateProgram,

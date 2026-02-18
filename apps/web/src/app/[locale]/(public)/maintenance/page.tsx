@@ -2,8 +2,10 @@ import { Wrench } from 'lucide-react';
 
 export default function MaintenancePage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <div className="text-center">
+    <div className="relative flex min-h-[60vh] items-center justify-center overflow-hidden px-4">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <div className="relative text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
           <Wrench className="h-8 w-8 text-amber-600" />
         </div>

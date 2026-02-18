@@ -201,7 +201,7 @@ Conversion.init(
     sequelize,
     tableName: 'conversions',
     modelName: 'Conversion',
-    timestamps: true,
+    timestamps: false,
     underscored: true,
   },
 );

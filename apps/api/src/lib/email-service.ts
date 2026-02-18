@@ -1,7 +1,13 @@
 import { Resend } from 'resend';
 import { EmailLog } from '@buyla/db';
 
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+let resend: Resend | null = null;
+
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!resend) resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@buyla.fr';
 const SITE_NAME = process.env.SITE_NAME || 'Buyla';
@@ -17,13 +23,14 @@ interface SendEmailParams {
 export async function sendEmail(params: SendEmailParams): Promise<void> {
   const { to, subject, html, userId, templateName } = params;
 
-  if (!process.env.RESEND_API_KEY) {
+  const client = getResend();
+  if (!client) {
     console.warn('[email-service] RESEND_API_KEY is not set, skipping email send');
     return;
   }
 
   try {
-    const result = await resend.emails.send({
+    const result = await client.emails.send({
       from: `${SITE_NAME} <${FROM_EMAIL}>`,
       to,
       subject,

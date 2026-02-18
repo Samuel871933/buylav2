@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Power } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { DataTable, Column } from '@/components/data/data-table';
 import { Badge } from '@/components/ui/badge';
+import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -14,41 +15,49 @@ import { API_URL } from '@/lib/constants';
 interface Programme {
   id: string;
   name: string;
+  display_name?: string;
   network: string;
-  buyerCashbackPercent: number;
-  reconciliationMethod: string;
-  status: string;
-  createdAt: string;
+  url_template?: string;
+  buyer_cashback_rate?: number;
+  buyerCashbackPercent?: number;
+  reconciliation_method?: string;
+  reconciliationMethod?: string;
+  is_active: boolean;
+  createdAt?: string;
+  created_at?: string;
 }
 
 type FormData = {
-  name: string;
+  displayName: string;
   network: string;
+  urlTemplate: string;
   buyerCashbackPercent: string;
   reconciliationMethod: string;
 };
 
 const EMPTY_FORM: FormData = {
-  name: '',
-  network: '',
+  displayName: '',
+  network: 'awin',
+  urlTemplate: '',
   buyerCashbackPercent: '',
   reconciliationMethod: 'postback',
 };
 
 const NETWORK_OPTIONS = [
   { value: 'awin', label: 'Awin' },
-  { value: 'tradedoubler', label: 'Tradedoubler' },
+  { value: 'affilae', label: 'Affilae' },
   { value: 'cj', label: 'CJ Affiliate' },
-  { value: 'impact', label: 'Impact' },
-  { value: 'rakuten', label: 'Rakuten' },
-  { value: 'other', label: 'Autre' },
+  { value: 'amazon', label: 'Amazon' },
+  { value: 'direct', label: 'Direct' },
+  { value: 'custom', label: 'Autre' },
 ];
 
 const RECONCILIATION_OPTIONS = [
   { value: 'postback', label: 'Postback' },
-  { value: 'api', label: 'API' },
-  { value: 'csv', label: 'CSV Import' },
-  { value: 'manual', label: 'Manuel' },
+  { value: 'api_manual', label: 'API Manuel' },
+  { value: 'api_scheduled', label: 'API Planifie' },
+  { value: 'csv_import', label: 'CSV Import' },
+  { value: 'stripe', label: 'Stripe' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -71,7 +80,10 @@ async function fetchAdmin(path: string, options?: RequestInit) {
       'Content-Type': 'application/json',
     },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error?.message || `API error: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -92,19 +104,23 @@ export default function AdminProgrammesPage() {
   const [editingProgramme, setEditingProgramme] = useState<Programme | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [confirmDeactivate, setConfirmDeactivate] = useState<Programme | null>(null);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Programme | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Fetch data
-  const fetchProgrammes = useCallback(async () => {
-    setLoading(true);
+  const fetchProgrammes = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
       const json = await fetchAdmin(`/api/admin/programmes?${params}`);
       const result = json.data ?? json;
       setProgrammes(Array.isArray(result) ? result : result.programmes ?? []);
-      setTotalPages(result.totalPages ?? 1);
-      setTotal(result.total ?? (Array.isArray(result) ? result.length : 0));
+      const pag = json.pagination ?? result;
+      setTotalPages(pag.totalPages ?? 1);
+      setTotal(pag.total ?? (Array.isArray(result) ? result.length : 0));
     } catch {
       setProgrammes([]);
     } finally {
@@ -127,10 +143,11 @@ export default function AdminProgrammesPage() {
   const openEdit = useCallback((p: Programme) => {
     setEditingProgramme(p);
     setForm({
-      name: p.name,
+      displayName: p.display_name || p.name,
       network: p.network,
-      buyerCashbackPercent: String(p.buyerCashbackPercent),
-      reconciliationMethod: p.reconciliationMethod,
+      urlTemplate: p.url_template || '',
+      buyerCashbackPercent: String(p.buyer_cashback_rate ?? p.buyerCashbackPercent ?? 0),
+      reconciliationMethod: p.reconciliation_method || p.reconciliationMethod || 'postback',
     });
     setModalOpen(true);
   }, []);
@@ -139,11 +156,17 @@ export default function AdminProgrammesPage() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
+      const slug = form.displayName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '');
       const body = JSON.stringify({
-        name: form.name,
+        name: slug,
+        display_name: form.displayName,
         network: form.network,
-        buyerCashbackPercent: parseFloat(form.buyerCashbackPercent) || 0,
-        reconciliationMethod: form.reconciliationMethod,
+        url_template: form.urlTemplate || `https://${slug}.example.com/?sub_id={sub_id}`,
+        buyer_cashback_rate: parseFloat(form.buyerCashbackPercent) || 0,
+        reconciliation_method: form.reconciliationMethod,
       });
 
       if (editingProgramme) {
@@ -159,7 +182,7 @@ export default function AdminProgrammesPage() {
       }
 
       setModalOpen(false);
-      fetchProgrammes();
+      fetchProgrammes(true);
     } catch {
       // Error handling - keep modal open
     } finally {
@@ -167,19 +190,36 @@ export default function AdminProgrammesPage() {
     }
   }, [form, editingProgramme, fetchProgrammes]);
 
-  // Deactivate / Activate
-  const handleDeactivate = useCallback(async (p: Programme) => {
+  // Toggle active / inactive (optimistic update)
+  const handleToggleStatus = useCallback(async (p: Programme) => {
+    const newValue = !p.is_active;
+    // Optimistic: update local state immediately
+    setProgrammes((prev) =>
+      prev.map((item) => (item.id === p.id ? { ...item, is_active: newValue } : item)),
+    );
     try {
-      const newStatus = p.status === 'active' ? 'inactive' : 'active';
       await fetchAdmin(`/api/admin/programmes/${p.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ is_active: newValue }),
       });
-      fetchProgrammes();
     } catch {
-      // Silently fail
-    } finally {
-      setConfirmDeactivate(null);
+      // Rollback on error
+      setProgrammes((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, is_active: !newValue } : item)),
+      );
+    }
+  }, []);
+
+  // Delete
+  const handleDelete = useCallback(async (p: Programme) => {
+    setProgrammes((prev) => prev.filter((item) => item.id !== p.id));
+    setDeleteTarget(null);
+    try {
+      await fetchAdmin(`/api/admin/programmes/${p.id}`, { method: 'DELETE' });
+    } catch (err) {
+      // Rollback + show error
+      fetchProgrammes(true);
+      setErrorMessage(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
   }, [fetchProgrammes]);
 
@@ -196,7 +236,7 @@ export default function AdminProgrammesPage() {
       header: 'Nom',
       sortable: true,
       render: (_v, row) => (
-        <span className="font-medium text-gray-900">{row.name}</span>
+        <span className="font-medium text-gray-900">{row.display_name || row.name}</span>
       ),
     },
     {
@@ -208,27 +248,30 @@ export default function AdminProgrammesPage() {
       ),
     },
     {
-      key: 'buyerCashbackPercent',
+      key: 'buyer_cashback_rate',
       header: 'Cashback acheteur %',
       sortable: true,
-      render: (v) => <span>{v}%</span>,
+      render: (v, row) => <span>{v ?? row.buyerCashbackPercent ?? 0}%</span>,
     },
     {
-      key: 'reconciliationMethod',
+      key: 'reconciliation_method',
       header: 'Reconciliation',
-      render: (v) => (
+      render: (v, row) => (
         <Badge variant="default" size="sm">
-          {v}
+          {v || row.reconciliationMethod || '-'}
         </Badge>
       ),
     },
     {
-      key: 'status',
-      header: 'Statut',
-      render: (v) => (
-        <Badge variant={v === 'active' ? 'success' : 'default'} size="sm">
-          {v === 'active' ? 'Actif' : 'Inactif'}
-        </Badge>
+      key: 'is_active',
+      header: 'Actif',
+      render: (_v, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Toggle
+            checked={!!row.is_active}
+            onChange={() => handleToggleStatus(row)}
+          />
+        </div>
       ),
     },
     {
@@ -244,11 +287,11 @@ export default function AdminProgrammesPage() {
             <Pencil className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setConfirmDeactivate(row)}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-amber-600"
-            title={row.status === 'active' ? 'Desactiver' : 'Activer'}
+            onClick={() => setDeleteTarget(row)}
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            title="Supprimer"
           >
-            <Power className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ),
@@ -267,6 +310,15 @@ export default function AdminProgrammesPage() {
           </Button>
         }
       />
+
+      {errorMessage && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-700">{errorMessage}</p>
+          <button onClick={() => setErrorMessage('')} className="text-red-400 hover:text-red-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <div className="mt-6">
         <DataTable
@@ -291,8 +343,8 @@ export default function AdminProgrammesPage() {
         <div className="space-y-4">
           <Input
             label="Nom du programme"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            value={form.displayName}
+            onChange={(e) => setForm({ ...form, displayName: e.target.value })}
             placeholder="Ex: Amazon FR"
           />
           <Select
@@ -300,7 +352,12 @@ export default function AdminProgrammesPage() {
             options={NETWORK_OPTIONS}
             value={form.network}
             onChange={(e) => setForm({ ...form, network: e.target.value })}
-            placeholder="Choisir un reseau"
+          />
+          <Input
+            label="URL Template"
+            value={form.urlTemplate}
+            onChange={(e) => setForm({ ...form, urlTemplate: e.target.value })}
+            placeholder="Ex: https://www.awin1.com/cread.php?awinmid=1234&p={sub_id}"
           />
           <Input
             label="Cashback acheteur (%)"
@@ -330,31 +387,29 @@ export default function AdminProgrammesPage() {
         </div>
       </Modal>
 
-      {/* Confirm Deactivate Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={!!confirmDeactivate}
-        onClose={() => setConfirmDeactivate(null)}
-        title={confirmDeactivate?.status === 'active' ? 'Desactiver le programme' : 'Activer le programme'}
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Confirmer la suppression"
         size="sm"
       >
-        <p className="text-sm text-gray-600">
-          {confirmDeactivate?.status === 'active'
-            ? `Voulez-vous desactiver le programme "${confirmDeactivate?.name}" ? Il ne sera plus visible pour les ambassadeurs.`
-            : `Voulez-vous reactiver le programme "${confirmDeactivate?.name}" ?`}
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={() => setConfirmDeactivate(null)}>
-            Annuler
-          </Button>
-          <Button
-            variant={confirmDeactivate?.status === 'active' ? 'danger' : 'primary'}
-            size="sm"
-            onClick={() => confirmDeactivate && handleDeactivate(confirmDeactivate)}
-          >
-            {confirmDeactivate?.status === 'active' ? 'Desactiver' : 'Activer'}
-          </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Voulez-vous vraiment supprimer le programme{' '}
+            <strong>{deleteTarget?.display_name || deleteTarget?.name}</strong> ?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)}>
+              Annuler
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Supprimer
+            </Button>
+          </div>
         </div>
       </Modal>
+
     </div>
   );
 }

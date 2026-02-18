@@ -12,14 +12,14 @@ export async function onAmbassadorRegistered(userId: string): Promise<void> {
   const user = await User.findByPk(userId);
   if (!user) return;
 
-  const { subject, html } = templates.welcomeAmbassador(user.name, user.referral_code);
+  const { subject, html } = templates.welcomeAmbassador(user.firstname, user.referral_code);
   await sendEmail({ to: user.email, subject, html, userId, templateName: 'welcome_ambassador' });
 
   await Notification.create({
     user_id: userId,
     type: 'sale',
     title: 'Bienvenue !',
-    message: `Bienvenue sur la plateforme, ${user.name} !`,
+    message: `Bienvenue sur la plateforme, ${user.firstname} !`,
     is_read: false,
   });
 }
@@ -33,7 +33,7 @@ export async function onBuyerRegistered(userId: string): Promise<void> {
   const user = await User.findByPk(userId);
   if (!user) return;
 
-  const { subject, html } = templates.welcomeBuyer(user.name);
+  const { subject, html } = templates.welcomeBuyer(user.firstname);
   await sendEmail({ to: user.email, subject, html, userId, templateName: 'welcome_buyer' });
 }
 
@@ -45,7 +45,7 @@ export async function onFirstSale(conversionId: number): Promise<void> {
 
   const conversion = await Conversion.findByPk(conversionId, {
     include: [
-      { model: User, as: 'ambassador', attributes: ['id', 'name', 'email'] },
+      { model: User, as: 'ambassador', attributes: ['id', 'firstname', 'lastname', 'email'] },
       { model: AffiliateProgram, as: 'program', attributes: ['display_name'] },
     ],
   });
@@ -56,7 +56,7 @@ export async function onFirstSale(conversionId: number): Promise<void> {
   if (!ambassador) return;
 
   const { subject, html } = templates.firstSale(
-    ambassador.name,
+    ambassador.firstname,
     Number(conversion.amount),
     Number(conversion.ambassador_share),
     program?.display_name || 'Programme affilié',
@@ -87,7 +87,7 @@ export async function onNewReferral(sponsorId: string, referralName: string): Pr
   const sponsor = await User.findByPk(sponsorId);
   if (!sponsor) return;
 
-  const { subject, html } = templates.newReferral(sponsor.name, referralName);
+  const { subject, html } = templates.newReferral(sponsor.firstname, referralName);
   await sendEmail({
     to: sponsor.email,
     subject,
@@ -114,7 +114,7 @@ export async function onTierUp(userId: string, newTier: string, newRate: number)
   const user = await User.findByPk(userId);
   if (!user) return;
 
-  const { subject, html } = templates.tierUp(user.name, newTier, newRate);
+  const { subject, html } = templates.tierUp(user.firstname, newTier, newRate);
   await sendEmail({
     to: user.email,
     subject,
@@ -145,7 +145,7 @@ export async function onCashbackEarned(
   const user = await User.findByPk(userId);
   if (!user) return;
 
-  const { subject, html } = templates.cashbackEarned(user.name, amount, merchantName);
+  const { subject, html } = templates.cashbackEarned(user.firstname, amount, merchantName);
   await sendEmail({
     to: user.email,
     subject,
@@ -170,7 +170,7 @@ export async function onPayoutApproved(payoutId: number): Promise<void> {
   if (!enabled) return;
 
   const payout = await Payout.findByPk(payoutId, {
-    include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }],
+    include: [{ model: User, as: 'user', attributes: ['id', 'firstname', 'lastname', 'email'] }],
   });
   if (!payout) return;
 
@@ -178,7 +178,7 @@ export async function onPayoutApproved(payoutId: number): Promise<void> {
   if (!user) return;
 
   const { subject, html } = templates.payoutApproved(
-    user.name,
+    user.firstname,
     Number(payout.amount),
     payout.method,
   );
@@ -206,7 +206,7 @@ export async function onFraudFlagCreated(flagId: number): Promise<void> {
   if (!enabled) return;
 
   const flag = await FraudFlag.findByPk(flagId, {
-    include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }],
+    include: [{ model: User, as: 'user', attributes: ['id', 'firstname', 'lastname', 'email'] }],
   });
   if (!flag) return;
 
@@ -214,7 +214,7 @@ export async function onFraudFlagCreated(flagId: number): Promise<void> {
   if (flag.severity !== 'high' && flag.severity !== 'critical') return;
 
   const flagUser = (flag as any).user as User | null;
-  const userName = flagUser?.name || 'Utilisateur inconnu';
+  const userName = flagUser?.firstname || 'Utilisateur inconnu';
 
   const { subject, html } = templates.adminFraudAlert(userName, flag.type, flag.severity);
 
@@ -242,12 +242,12 @@ export async function onPayoutRequested(payoutId: number): Promise<void> {
   if (!enabled) return;
 
   const payout = await Payout.findByPk(payoutId, {
-    include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }],
+    include: [{ model: User, as: 'user', attributes: ['id', 'firstname', 'lastname', 'email'] }],
   });
   if (!payout) return;
 
   const user = (payout as any).user as User | null;
-  const userName = user?.name || 'Utilisateur inconnu';
+  const userName = user?.firstname || 'Utilisateur inconnu';
 
   const { subject, html } = templates.adminPayoutRequest(
     userName,

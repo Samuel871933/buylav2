@@ -5,11 +5,11 @@ import { Users, Eye, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { DataTable, Column } from '@/components/data/data-table';
 import { Badge } from '@/components/ui/badge';
+import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Card } from '@/components/ui/card';
-import { StatusBadge } from '@/components/data/status-badge';
 import { API_URL } from '@/lib/constants';
 
 interface Ambassador {
@@ -21,6 +21,7 @@ interface Ambassador {
   referralsCount: number;
   createdAt: string;
   status: string;
+  is_active?: boolean;
   totalEarnings?: number;
   phone?: string;
   iban?: string;
@@ -144,6 +145,27 @@ export default function AdminAmbassadeursPage() {
     }
   }, []);
 
+  // Toggle active / inactive (optimistic update)
+  const handleToggleStatus = useCallback(async (a: Ambassador) => {
+    const isActive = a.status === 'active';
+    const newStatus = isActive ? 'inactive' : 'active';
+    // Optimistic: update local state immediately
+    setAmbassadors((prev) =>
+      prev.map((item) => (item.id === a.id ? { ...item, status: newStatus } : item)),
+    );
+    try {
+      await fetchAdmin(`/api/admin/ambassadors/${a.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: !isActive }),
+      });
+    } catch {
+      // Rollback on error
+      setAmbassadors((prev) =>
+        prev.map((item) => (item.id === a.id ? { ...item, status: isActive ? 'active' : 'inactive' } : item)),
+      );
+    }
+  }, []);
+
   // Tier badge helper
   function renderTierBadge(tier: string) {
     const key = tier.toLowerCase() as TierKey;
@@ -199,8 +221,15 @@ export default function AdminAmbassadeursPage() {
     },
     {
       key: 'status',
-      header: 'Statut',
-      render: (v) => <StatusBadge status={v ?? 'pending'} />,
+      header: 'Actif',
+      render: (_v, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Toggle
+            checked={row.status === 'active'}
+            onChange={() => handleToggleStatus(row)}
+          />
+        </div>
+      ),
     },
     {
       key: 'actions',
@@ -280,7 +309,9 @@ export default function AdminAmbassadeursPage() {
               </div>
               <div className="flex items-center gap-2">
                 {renderTierBadge(selectedAmbassador.tier)}
-                <StatusBadge status={selectedAmbassador.status ?? 'pending'} />
+                <Badge variant={selectedAmbassador.status === 'active' ? 'success' : 'default'} size="sm">
+                  {selectedAmbassador.status === 'active' ? 'Actif' : 'Inactif'}
+                </Badge>
               </div>
             </div>
 

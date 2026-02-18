@@ -6,7 +6,7 @@ const API_URL = process.env.API_URL || 'http://localhost:4000';
 
 interface PageProps {
   params: Promise<{ locale: string; merchant: string }>;
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; url?: string }>;
 }
 
 async function fetchPortalData(merchantSlug: string) {
@@ -35,7 +35,7 @@ async function fetchPortalData(merchantSlug: string) {
 
 export default async function GoMerchantPage({ params, searchParams }: PageProps) {
   const { merchant } = await params;
-  const { ref } = await searchParams;
+  const { ref, url } = await searchParams;
   const t = await getTranslations('redirect');
 
   const portal = await fetchPortalData(merchant);
@@ -81,6 +81,7 @@ export default async function GoMerchantPage({ params, searchParams }: PageProps
     <RedirectCountdown
       portal={portal}
       ambassadorRef={ref}
+      productUrl={url}
     />
   );
 }

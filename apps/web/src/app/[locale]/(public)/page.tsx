@@ -18,14 +18,15 @@ import {
   Utensils,
 } from 'lucide-react';
 
-const categories = [
-  { icon: Heart, label: 'Santé', color: 'bg-green-100 text-green-600' },
-  { icon: Sparkles, label: 'Beauté', color: 'bg-pink-100 text-pink-600' },
-  { icon: Dumbbell, label: 'Sport', color: 'bg-orange-100 text-orange-600' },
-  { icon: Monitor, label: 'Tech', color: 'bg-blue-100 text-blue-600' },
-  { icon: Home, label: 'Maison', color: 'bg-amber-100 text-amber-600' },
-  { icon: Headphones, label: 'Mode', color: 'bg-purple-100 text-purple-600' },
-  { icon: Utensils, label: 'Alimentation', color: 'bg-emerald-100 text-emerald-600' },
+const partners = [
+  { icon: ShoppingCart, label: 'Amazon', color: 'bg-orange-100 text-orange-600' },
+  { icon: Monitor, label: 'Fnac', color: 'bg-yellow-100 text-yellow-600' },
+  { icon: Sparkles, label: 'Sephora', color: 'bg-pink-100 text-pink-600' },
+  { icon: Headphones, label: 'Zalando', color: 'bg-purple-100 text-purple-600' },
+  { icon: Home, label: 'Booking', color: 'bg-blue-100 text-blue-600' },
+  { icon: Dumbbell, label: 'Decathlon', color: 'bg-green-100 text-green-600' },
+  { icon: Heart, label: 'NutriProfits', color: 'bg-emerald-100 text-emerald-600' },
+  { icon: Utensils, label: 'Naturecan', color: 'bg-teal-100 text-teal-600' },
 ];
 
 export default function HomePage() {
@@ -116,22 +117,22 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* Categories */}
+      {/* Nos partenaires */}
       <section className="bg-white py-20">
         <Container>
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">{t('categories')}</h2>
+            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">Nos partenaires</h2>
           </div>
           <div className="mt-12 flex flex-wrap justify-center gap-4">
-            {categories.map((cat) => (
+            {partners.map((partner) => (
               <div
-                key={cat.label}
+                key={partner.label}
                 className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm transition hover:shadow-md"
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${cat.color}`}>
-                  <cat.icon className="h-5 w-5" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${partner.color}`}>
+                  <partner.icon className="h-5 w-5" />
                 </div>
-                <span className="font-medium text-gray-900">{cat.label}</span>
+                <span className="font-medium text-gray-900">{partner.label}</span>
               </div>
             ))}
           </div>

@@ -2,20 +2,18 @@ import { Router } from 'express';
 import { User, Visit, OutboundClick, Conversion, AffiliateProgram, CommissionTier, Sequelize, Op } from '@buyla/db';
 import { success, paginated, error } from '../lib/api-response';
 import { checkAuth, checkRole } from '../middleware/auth.middleware';
+import { hashPassword, comparePassword } from '../lib/auth';
 
 const router = Router();
 
 // All ambassador routes require auth + ambassador role
 router.use(checkAuth(), checkRole('ambassador'));
 
-// ── GET /api/ambassador/stats ──
-router.get('/stats', async (req, res) => {
+// ── GET /api/ambassador/profile ──
+router.get('/profile', async (req, res) => {
   try {
-    const ambassadorId = req.user!.userId;
-
-    // Fetch user data for tier, referral_code, total_sales
-    const user = await User.findByPk(ambassadorId, {
-      attributes: ['total_sales', 'tier', 'referral_code'],
+    const user = await User.findByPk(req.user!.userId, {
+      attributes: ['id', 'firstname', 'lastname', 'email', 'avatar_url'],
     });
 
     if (!user) {
@@ -23,48 +21,205 @@ router.get('/stats', async (req, res) => {
       return;
     }
 
-    // Today boundaries
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    // Total clicks
-    const totalClicks = await OutboundClick.count({
-      where: { ambassador_id: ambassadorId },
+    success(res, {
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email,
+      avatar_url: user.avatar_url,
     });
+  } catch (err) {
+    console.error('Ambassador profile error:', err);
+    error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
+  }
+});
 
-    // Clicks today
-    const clicksToday = await OutboundClick.count({
-      where: {
-        ambassador_id: ambassadorId,
-        clicked_at: { [Op.gte]: todayStart },
-      },
-    });
+// ── PUT /api/ambassador/profile ──
+router.put('/profile', async (req, res) => {
+  try {
+    const { firstname, lastname } = req.body;
+    const updateData: Record<string, unknown> = {};
 
-    // Total visits
-    const totalVisits = await Visit.count({
-      where: { ambassador_id: ambassadorId },
-    });
+    if (firstname !== undefined) updateData.firstname = firstname;
+    if (lastname !== undefined) updateData.lastname = lastname;
 
-    // Visits today
-    const visitsToday = await Visit.count({
-      where: {
-        ambassador_id: ambassadorId,
-        created_at: { [Op.gte]: todayStart },
-      },
+    if (Object.keys(updateData).length === 0) {
+      error(res, 'VALIDATION_ERROR', 'Aucune donnée à mettre à jour', 400);
+      return;
+    }
+
+    await User.update(updateData, { where: { id: req.user!.userId } });
+
+    const user = await User.findByPk(req.user!.userId, {
+      attributes: ['id', 'firstname', 'lastname', 'email', 'avatar_url'],
     });
 
     success(res, {
-      stats: {
-        totalClicks,
-        clicksToday,
-        totalVisits,
-        visitsToday,
-        pendingEarnings: 0,
-        confirmedEarnings: 0,
-        totalSales: user.total_sales,
-        currentTier: user.tier,
-        referralCode: user.referral_code,
-      },
+      firstname: user!.firstname,
+      lastname: user!.lastname,
+      email: user!.email,
+      avatar_url: user!.avatar_url,
+    });
+  } catch (err) {
+    console.error('Ambassador update profile error:', err);
+    error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
+  }
+});
+
+// ── PUT /api/ambassador/password ──
+router.put('/password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      error(res, 'VALIDATION_ERROR', 'Mot de passe actuel et nouveau requis', 400);
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      error(res, 'VALIDATION_ERROR', 'Le nouveau mot de passe doit contenir au moins 8 caractères', 400);
+      return;
+    }
+
+    const user = await User.findByPk(req.user!.userId);
+    if (!user || !user.password_hash) {
+      error(res, 'NOT_FOUND', 'Utilisateur introuvable', 404);
+      return;
+    }
+
+    const isValid = await comparePassword(currentPassword, user.password_hash);
+    if (!isValid) {
+      error(res, 'INVALID_CREDENTIALS', 'Mot de passe actuel incorrect', 401);
+      return;
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await User.update({ password_hash: newHash }, { where: { id: req.user!.userId } });
+
+    success(res, { message: 'Mot de passe modifié avec succès' });
+  } catch (err) {
+    console.error('Ambassador change password error:', err);
+    error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
+  }
+});
+
+// ── Helper: compute period start date ──
+function getPeriodStart(period: string): Date | null {
+  const now = new Date();
+  switch (period) {
+    case 'today': {
+      const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+    }
+    case '7d': {
+      const d = new Date(now); d.setDate(d.getDate() - 7); d.setHours(0, 0, 0, 0); return d;
+    }
+    case '30d': {
+      const d = new Date(now); d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0); return d;
+    }
+    case '90d': {
+      const d = new Date(now); d.setDate(d.getDate() - 90); d.setHours(0, 0, 0, 0); return d;
+    }
+    case '12m': {
+      const d = new Date(now); d.setFullYear(d.getFullYear() - 1); d.setHours(0, 0, 0, 0); return d;
+    }
+    case 'all':
+    default:
+      return null; // no filter
+  }
+}
+
+// ── GET /api/ambassador/stats ──
+// ?period=today|7d|30d|90d|12m|all (default: 30d)
+router.get('/stats', async (req, res) => {
+  try {
+    const ambassadorId = req.user!.userId;
+    const period = (req.query.period as string) || '30d';
+    const since = getPeriodStart(period);
+
+    const user = await User.findByPk(ambassadorId, {
+      attributes: ['firstname', 'total_sales', 'tier', 'referral_code'],
+    });
+
+    if (!user) {
+      error(res, 'NOT_FOUND', 'Utilisateur introuvable', 404);
+      return;
+    }
+
+    // Build date filter for the period
+    const periodClickWhere: Record<string, unknown> = { ambassador_id: ambassadorId };
+    const periodVisitWhere: Record<string, unknown> = { ambassador_id: ambassadorId };
+    const periodConvWhere: Record<string, unknown> = { ambassador_id: ambassadorId };
+
+    if (since) {
+      periodClickWhere.clicked_at = { [Op.gte]: since };
+      periodVisitWhere.created_at = { [Op.gte]: since };
+      periodConvWhere.created_at = { [Op.gte]: since };
+    }
+
+    // Run all queries in parallel (findOne + COALESCE for reliable SUM)
+    const [
+      clicks,
+      visits,
+      conversionsCount,
+      totalSalesAmount,
+      pendingResult,
+      confirmedResult,
+      paidResult,
+    ] = await Promise.all([
+      // Clicks in period
+      OutboundClick.count({ where: periodClickWhere }),
+      // Visits in period
+      Visit.count({ where: periodVisitWhere }),
+      // Conversions count in period (excl cancelled)
+      Conversion.count({
+        where: { ...periodConvWhere, status: { [Op.ne]: 'cancelled' } },
+      }),
+      // Total sales amount in period (excl cancelled)
+      Conversion.findOne({
+        attributes: [
+          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('amount')), 0), 'total'],
+        ],
+        where: { ...periodConvWhere, status: { [Op.ne]: 'cancelled' } },
+        raw: true,
+      }),
+      // Pending earnings (ambassador_share where status = pending)
+      Conversion.findOne({
+        attributes: [
+          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('ambassador_share')), 0), 'total'],
+        ],
+        where: { ...periodConvWhere, status: 'pending' },
+        raw: true,
+      }),
+      // Confirmed earnings (ambassador_share where status = confirmed)
+      Conversion.findOne({
+        attributes: [
+          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('ambassador_share')), 0), 'total'],
+        ],
+        where: { ...periodConvWhere, status: 'confirmed' },
+        raw: true,
+      }),
+      // Paid earnings
+      Conversion.findOne({
+        attributes: [
+          [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('ambassador_share')), 0), 'total'],
+        ],
+        where: { ...periodConvWhere, status: 'paid' },
+        raw: true,
+      }),
+    ]);
+
+    success(res, {
+      name: user.firstname || 'Ambassadeur',
+      period,
+      clicks,
+      visits,
+      conversions: conversionsCount,
+      total_amount: Number((totalSalesAmount as any)?.total) || 0,
+      pending_earnings: Number((pendingResult as any)?.total) || 0,
+      confirmed_earnings: Number((confirmedResult as any)?.total) || 0,
+      paid_earnings: Number((paidResult as any)?.total) || 0,
+      total_sales: user.total_sales,
+      current_tier: user.tier,
+      referral_code: user.referral_code,
     });
   } catch (err) {
     console.error('Ambassador stats error:', err);
@@ -73,73 +228,121 @@ router.get('/stats', async (req, res) => {
 });
 
 // ── GET /api/ambassador/chart ──
+// ?period=today|7d|30d|90d|12m|all (default: 30d)
 router.get('/chart', async (req, res) => {
   try {
     const ambassadorId = req.user!.userId;
-    const days = Math.min(Math.max(parseInt(req.query.days as string) || 30, 1), 365);
+    const period = (req.query.period as string) || '30d';
+    const since = getPeriodStart(period) || (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 2); return d; })();
 
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    since.setHours(0, 0, 0, 0);
-
-    // Daily clicks grouped by DATE(clicked_at)
+    // Daily clicks
     const clickRows = await OutboundClick.findAll({
       attributes: [
         [Sequelize.fn('DATE', Sequelize.col('clicked_at')), 'date'],
         [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
       ],
-      where: {
-        ambassador_id: ambassadorId,
-        clicked_at: { [Op.gte]: since },
-      },
+      where: { ambassador_id: ambassadorId, clicked_at: { [Op.gte]: since } },
       group: [Sequelize.fn('DATE', Sequelize.col('clicked_at'))],
       order: [[Sequelize.fn('DATE', Sequelize.col('clicked_at')), 'ASC']],
       raw: true,
     });
 
-    // Daily visits grouped by DATE(created_at)
+    // Daily visits
     const visitRows = await Visit.findAll({
       attributes: [
         [Sequelize.fn('DATE', Sequelize.col('created_at')), 'date'],
         [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
       ],
+      where: { ambassador_id: ambassadorId, created_at: { [Op.gte]: since } },
+      group: [Sequelize.fn('DATE', Sequelize.col('created_at'))],
+      order: [[Sequelize.fn('DATE', Sequelize.col('created_at')), 'ASC']],
+      raw: true,
+    });
+
+    // Daily earnings (ambassador_share, excl cancelled)
+    const earningsRows = await Conversion.findAll({
+      attributes: [
+        [Sequelize.fn('DATE', Sequelize.col('created_at')), 'date'],
+        [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('ambassador_share')), 0), 'earnings'],
+        [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('amount')), 0), 'sales'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
+      ],
       where: {
         ambassador_id: ambassadorId,
         created_at: { [Op.gte]: since },
+        status: { [Op.ne]: 'cancelled' },
       },
       group: [Sequelize.fn('DATE', Sequelize.col('created_at'))],
       order: [[Sequelize.fn('DATE', Sequelize.col('created_at')), 'ASC']],
       raw: true,
     });
 
-    // Build a map of date -> { clicks, visits }
+    // Daily sponsorship earnings (sponsor_share where I am sponsor)
+    const sponsorRows = await Conversion.findAll({
+      attributes: [
+        [Sequelize.fn('DATE', Sequelize.col('created_at')), 'date'],
+        [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('sponsor_share')), 0), 'sponsor_earnings'],
+      ],
+      where: {
+        sponsor_id: ambassadorId,
+        created_at: { [Op.gte]: since },
+        status: { [Op.ne]: 'cancelled' },
+      },
+      group: [Sequelize.fn('DATE', Sequelize.col('created_at'))],
+      order: [[Sequelize.fn('DATE', Sequelize.col('created_at')), 'ASC']],
+      raw: true,
+    });
+
     const clickMap = new Map<string, number>();
-    for (const row of clickRows as any[]) {
-      clickMap.set(row.date, Number(row.count));
-    }
+    for (const row of clickRows as any[]) clickMap.set(row.date, Number(row.count));
 
     const visitMap = new Map<string, number>();
-    for (const row of visitRows as any[]) {
-      visitMap.set(row.date, Number(row.count));
+    for (const row of visitRows as any[]) visitMap.set(row.date, Number(row.count));
+
+    const earningsMap = new Map<string, { earnings: number; sales: number; conversions: number }>();
+    for (const row of earningsRows as any[]) {
+      earningsMap.set(row.date, {
+        earnings: Number(row.earnings) || 0,
+        sales: Number(row.sales) || 0,
+        conversions: Number(row.count) || 0,
+      });
     }
 
-    // Fill all days in the range (so frontend gets a continuous series)
-    const chart: Array<{ date: string; clicks: number; visits: number }> = [];
+    const sponsorMap = new Map<string, number>();
+    for (const row of sponsorRows as any[]) {
+      sponsorMap.set(row.date, Number(row.sponsor_earnings) || 0);
+    }
+
+    const chart: Array<{
+      date: string;
+      clicks: number;
+      visits: number;
+      earnings: number;
+      sponsor_earnings: number;
+      sales: number;
+      conversions: number;
+    }> = [];
+
     const cursor = new Date(since);
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
     while (cursor <= today) {
       const dateStr = cursor.toISOString().slice(0, 10);
+      const e = earningsMap.get(dateStr);
       chart.push({
         date: dateStr,
         clicks: clickMap.get(dateStr) || 0,
         visits: visitMap.get(dateStr) || 0,
+        earnings: e?.earnings || 0,
+        sponsor_earnings: sponsorMap.get(dateStr) || 0,
+        sales: e?.sales || 0,
+        conversions: e?.conversions || 0,
       });
       cursor.setDate(cursor.getDate() + 1);
     }
 
-    success(res, { chart });
+    success(res, chart);
   } catch (err) {
     console.error('Ambassador chart error:', err);
     error(res, 'INTERNAL_ERROR', 'Erreur interne', 500);
@@ -313,7 +516,7 @@ router.get('/referrals', async (req, res) => {
     // Level 1 referrals
     const { count: totalL1, rows: level1 } = await User.findAndCountAll({
       where: { referred_by: ambassadorId, role: 'ambassador' },
-      attributes: ['id', 'name', 'email', 'is_active', 'total_sales', 'tier', 'created_at'],
+      attributes: ['id', 'firstname', 'lastname', 'email', 'is_active', 'total_sales', 'tier', 'created_at'],
       order: [['created_at', 'DESC']],
       limit,
       offset,
@@ -497,7 +700,7 @@ router.get('/leaderboard', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
 
     const topAmbassadors = await User.findAll({
-      attributes: ['id', 'name', 'total_sales', 'tier', 'created_at'],
+      attributes: ['id', 'firstname', 'lastname', 'total_sales', 'tier', 'created_at'],
       where: { role: 'ambassador', is_active: true },
       order: [['total_sales', 'DESC']],
       limit,
@@ -506,7 +709,8 @@ router.get('/leaderboard', async (req, res) => {
     // Anonymize names: keep first letter + "***"
     const leaderboard = topAmbassadors.map((u: any, i: number) => ({
       rank: i + 1,
-      name: u.id === ambassadorId ? u.name : (u.name?.charAt(0) || '?') + '***',
+      firstname: u.id === ambassadorId ? u.firstname : (u.firstname?.charAt(0) || '?') + '***',
+      lastname: u.id === ambassadorId ? u.lastname : (u.lastname?.charAt(0) || '?') + '***',
       total_sales: u.total_sales,
       tier: u.tier,
       is_me: u.id === ambassadorId,

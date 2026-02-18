@@ -796,7 +796,11 @@ function toCsvRow(fields: Array<string | number | boolean | null | undefined>): 
 
 router.get('/export/:type', async (req, res) => {
   try {
-    const exportType = req.params.type;
+    // Accept French aliases for export types
+    const typeAliases: Record<string, string> = {
+      ambassadeurs: 'ambassadors',
+    };
+    const exportType = typeAliases[req.params.type] || req.params.type;
     const period = (req.query.period as string) || '30d';
     const pStart = getPeriodStart(period);
     const pWhere = pStart ? { created_at: { [Op.gte]: pStart } } : {};
@@ -830,7 +834,7 @@ router.get('/export/:type', async (req, res) => {
         const rows = await Conversion.findAll({
           where: pWhere,
           include: [
-            { model: User, as: 'ambassador', attributes: ['name', 'email'] },
+            { model: User, as: 'ambassador', attributes: ['firstname', 'lastname', 'email'] },
             { model: AffiliateProgram, as: 'program', attributes: ['display_name'] },
           ],
           order: [['created_at', 'DESC']],
@@ -843,7 +847,7 @@ router.get('/export/:type', async (req, res) => {
               row.id as number,
               String(row.created_at),
               row.ambassador_id as string,
-              row['ambassador.name'] as string,
+              ((row['ambassador.firstname'] || '') + ' ' + (row['ambassador.lastname'] || '')).trim(),
               row['ambassador.email'] as string,
               row['program.display_name'] as string,
               row.order_ref as string,
@@ -865,7 +869,8 @@ router.get('/export/:type', async (req, res) => {
         filename = `ambassadors-${period}.csv`;
         const headers = [
           'id',
-          'name',
+          'firstname',
+          'lastname',
           'email',
           'referral_code',
           'tier',
@@ -880,7 +885,8 @@ router.get('/export/:type', async (req, res) => {
           where: { role: 'ambassador' },
           attributes: [
             'id',
-            'name',
+            'firstname',
+            'lastname',
             'email',
             'referral_code',
             'tier',
@@ -897,7 +903,8 @@ router.get('/export/:type', async (req, res) => {
           csv +=
             toCsvRow([
               row.id as string,
-              row.name as string,
+              row.firstname as string,
+              row.lastname as string,
               row.email as string,
               row.referral_code as string,
               row.tier as string,
@@ -928,7 +935,7 @@ router.get('/export/:type', async (req, res) => {
 
         const rows = await Payout.findAll({
           where: pWhere,
-          include: [{ model: User, as: 'user', attributes: ['name', 'email'] }],
+          include: [{ model: User, as: 'user', attributes: ['firstname', 'lastname', 'email'] }],
           order: [['created_at', 'DESC']],
           raw: true,
         });
@@ -938,7 +945,7 @@ router.get('/export/:type', async (req, res) => {
             toCsvRow([
               row.id as number,
               row.user_id as string,
-              row['user.name'] as string,
+              ((row['user.firstname'] || '') + ' ' + (row['user.lastname'] || '')).trim(),
               row['user.email'] as string,
               row.amount as number,
               row.type as string,
@@ -968,7 +975,7 @@ router.get('/export/:type', async (req, res) => {
 
         const rows = await CashbackTransaction.findAll({
           where: pWhere,
-          include: [{ model: User, as: 'user', attributes: ['name', 'email'] }],
+          include: [{ model: User, as: 'user', attributes: ['firstname', 'lastname', 'email'] }],
           order: [['created_at', 'DESC']],
           raw: true,
         });
@@ -978,7 +985,7 @@ router.get('/export/:type', async (req, res) => {
             toCsvRow([
               row.id as number,
               row.user_id as string,
-              row['user.name'] as string,
+              ((row['user.firstname'] || '') + ' ' + (row['user.lastname'] || '')).trim(),
               row['user.email'] as string,
               row.type as string,
               row.amount as number,
@@ -1007,7 +1014,7 @@ router.get('/export/:type', async (req, res) => {
 
         const rows = await AuditLog.findAll({
           where: pWhere,
-          include: [{ model: User, as: 'admin', attributes: ['name', 'email'] }],
+          include: [{ model: User, as: 'admin', attributes: ['firstname', 'lastname', 'email'] }],
           order: [['created_at', 'DESC']],
           raw: true,
         });
@@ -1017,7 +1024,7 @@ router.get('/export/:type', async (req, res) => {
             toCsvRow([
               row.id as number,
               row.admin_id as string,
-              row['admin.name'] as string,
+              ((row['admin.firstname'] || '') + ' ' + (row['admin.lastname'] || '')).trim(),
               row['admin.email'] as string,
               row.action as string,
               row.entity_type as string,
@@ -1029,11 +1036,46 @@ router.get('/export/:type', async (req, res) => {
         break;
       }
 
+      case 'emails': {
+        filename = `emails-${period}.csv`;
+        const headers = [
+          'id',
+          'sent_at',
+          'recipient',
+          'template_name',
+          'subject',
+          'status',
+          'resend_id',
+        ];
+        csv = toCsvRow(headers) + '\n';
+
+        const rows = await EmailLog.findAll({
+          where: pWhere,
+          include: [{ model: User, as: 'user', attributes: ['email'] }],
+          order: [['sent_at', 'DESC']],
+          raw: true,
+        });
+
+        for (const row of rows as unknown as Array<Record<string, unknown>>) {
+          csv +=
+            toCsvRow([
+              row.id as number,
+              row.sent_at ? String(row.sent_at) : null,
+              row['user.email'] as string || row.recipient_email as string,
+              row.template_name as string,
+              row.subject as string,
+              row.status as string,
+              row.resend_id as string,
+            ]) + '\n';
+        }
+        break;
+      }
+
       default:
         error(
           res,
           'INVALID_TYPE',
-          "Type d'export invalide. Types valides: conversions, ambassadors, payouts, cashback, audit",
+          "Type d'export invalide. Types valides: conversions, ambassadors, payouts, cashback, audit, emails",
           400,
         );
         return;

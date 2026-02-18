@@ -6,8 +6,10 @@ export default function CookiesPage() {
   const t = useTranslations('cookies');
 
   return (
-    <div className="py-12">
-      <Container className="max-w-4xl">
+    <div className="relative overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <Container className="relative max-w-4xl">
         <PageHeader
           title={t('title')}
           description={t('lastUpdated')}
@@ -106,7 +108,7 @@ export default function CookiesPage() {
             Votre choix est mémorisé pendant 12 mois. Vous pouvez modifier vos préférences à tout moment en cliquant sur le lien «&nbsp;Gérer mes cookies&nbsp;» disponible dans le pied de page du Site.
           </p>
           <p className="text-gray-600 leading-relaxed">
-            Le refus de cookies non essentiels n'affecte pas votre capacité à naviguer sur le Site ni à effectuer des achats.
+            Le refus de cookies non essentiels n'affecte pas votre capacité à naviguer sur le Site ni à utiliser les fonctionnalités du site.
           </p>
 
           <h2 className="text-xl font-semibold mt-8 mb-4 text-gray-900">6. Comment gérer les cookies dans votre navigateur ?</h2>

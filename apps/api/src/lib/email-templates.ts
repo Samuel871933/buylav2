@@ -364,7 +364,25 @@ export function adminFraudAlert(
   return { subject, html };
 }
 
-// ── 12. Admin Payout Request ──
+// ── 12. Password Reset ──
+
+export function passwordReset(
+  name: string,
+  resetUrl: string,
+): { subject: string; html: string } {
+  const subject = `R\u00e9initialisation de votre mot de passe`;
+  const html = baseTemplate(`
+    ${heading(`R&eacute;initialisation de mot de passe`)}
+    ${paragraph(`Bonjour ${name},`)}
+    ${paragraph(`Vous avez demand&eacute; la r&eacute;initialisation de votre mot de passe sur ${SITE_NAME}. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.`)}
+    ${btn('R&eacute;initialiser mon mot de passe', resetUrl)}
+    ${highlight(`Ce lien est valable pendant 1 heure et ne peut &ecirc;tre utilis&eacute; qu'une seule fois.`)}
+    ${paragraph(`Si vous n'avez pas demand&eacute; cette r&eacute;initialisation, vous pouvez ignorer cet email en toute s&eacute;curit&eacute;.`)}
+  `);
+  return { subject, html };
+}
+
+// ── 13. Admin Payout Request ──
 
 export function adminPayoutRequest(
   userName: string,

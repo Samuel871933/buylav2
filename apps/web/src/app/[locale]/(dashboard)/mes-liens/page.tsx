@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { API_URL } from '@/lib/constants';
+import { apiFetch } from '@/lib/api-client';
 const HISTORY_STORAGE_KEY = 'buyla_link_history';
 const MAX_HISTORY = 20;
 
@@ -37,24 +37,7 @@ interface GeneratedLink {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(
-    new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'),
-  );
-  return match ? decodeURIComponent(match[1]) : undefined;
-}
 
-function getAuthToken(): string | null {
-  // Try cookie first, then localStorage
-  const fromCookie = getCookie('buyla_token');
-  if (fromCookie) return fromCookie;
-
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('buyla_token');
-  }
-  return null;
-}
 
 function loadHistory(): GeneratedLink[] {
   if (typeof window === 'undefined') return [];
@@ -221,17 +204,8 @@ export default function MesLiensPage() {
     setLoading(true);
 
     try {
-      const token = getAuthToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${API_URL}/api/links/generate`, {
+      const res = await apiFetch('/api/links/generate', {
         method: 'POST',
-        headers,
         body: JSON.stringify({ url: trimmed }),
       });
 

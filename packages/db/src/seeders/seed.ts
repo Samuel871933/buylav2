@@ -215,7 +215,7 @@ async function seed() {
         display_name: 'Amazon France',
         network: 'amazon' as const,
         base_url: 'https://www.amazon.fr',
-        url_template: '{BASE_URL}?tag={AFF_ID}',
+        url_template: '{PRODUCT_URL}?tag={AFF_ID}',
         sub_id_param: null,
         sub_id_format: null,
         cookie_duration_days: 1,

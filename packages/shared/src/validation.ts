@@ -9,14 +9,16 @@ export const passwordSchema = z
   .regex(/[A-Z]/, 'Au moins une majuscule')
   .regex(/[0-9]/, 'Au moins un chiffre');
 
-export const nameSchema = z.string().min(2, 'Au moins 2 caractères').max(100);
+export const firstnameSchema = z.string().min(2, 'Au moins 2 caractères').max(50);
+export const lastnameSchema = z.string().min(2, 'Au moins 2 caractères').max(50);
 
 export const referralCodeSchema = z.string().length(8).regex(/^[A-Z0-9]+$/);
 
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  name: nameSchema,
+  firstname: firstnameSchema,
+  lastname: lastnameSchema,
   referral_code: z.string().optional(),
 });
 
@@ -30,7 +32,8 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  name: nameSchema.optional(),
+  firstname: firstnameSchema.optional(),
+  lastname: lastnameSchema.optional(),
   email: emailSchema.optional(),
   password: passwordSchema.optional(),
   avatar_url: z.string().url().optional(),

@@ -181,7 +181,7 @@ router.get('/audit-logs', async (req, res) => {
         {
           model: User,
           as: 'admin',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
       ],
@@ -222,7 +222,7 @@ router.get('/disputes', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
         {
@@ -252,13 +252,13 @@ router.get('/disputes/:id', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email', 'role'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'role'],
           required: false,
         },
         {
           model: User,
           as: 'admin',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
         {
@@ -273,7 +273,7 @@ router.get('/disputes/:id', async (req, res) => {
             {
               model: User,
               as: 'ambassador',
-              attributes: ['id', 'name', 'email'],
+              attributes: ['id', 'firstname', 'lastname', 'email'],
               required: false,
             },
             {
@@ -349,7 +349,7 @@ router.put('/disputes/:id', validate(updateDisputeSchema), async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
         {
@@ -398,7 +398,7 @@ router.get('/fraud-flags', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email', 'role', 'is_active'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'role', 'is_active'],
           required: false,
         },
       ],
@@ -426,7 +426,7 @@ router.get('/fraud-flags/:id', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email', 'role', 'is_active', 'tier', 'created_at'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'role', 'is_active', 'tier', 'created_at'],
           required: false,
         },
       ],
@@ -509,7 +509,7 @@ router.put('/fraud-flags/:id', validate(updateFraudFlagSchema), async (req, res)
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email', 'role', 'is_active'],
+          attributes: ['id', 'firstname', 'lastname', 'email', 'role', 'is_active'],
           required: false,
         },
       ],
@@ -534,7 +534,7 @@ router.get('/emails', async (req, res) => {
     const offset = (page - 1) * limit;
 
     const status = req.query.status as string | undefined;
-    const template_name = req.query.template_name as string | undefined;
+    const template_name = (req.query.template_name || req.query.template) as string | undefined;
     const from = req.query.from as string | undefined;
     const to = req.query.to as string | undefined;
 
@@ -562,7 +562,7 @@ router.get('/emails', async (req, res) => {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstname', 'lastname', 'email'],
           required: false,
         },
       ],
@@ -588,7 +588,7 @@ router.post('/send-weekly-recap', async (_req, res) => {
     // Find all active ambassadors
     const ambassadors = await User.findAll({
       where: { role: 'ambassador', is_active: true },
-      attributes: ['id', 'name', 'email'],
+      attributes: ['id', 'firstname', 'lastname', 'email'],
     });
 
     if (ambassadors.length === 0) {
@@ -653,7 +653,7 @@ router.post('/send-weekly-recap', async (_req, res) => {
           rank,
         };
 
-        const { subject, html } = emailTemplates.weeklyRecap(ambassador.name, stats);
+        const { subject, html } = emailTemplates.weeklyRecap(`${ambassador.firstname} ${ambassador.lastname}`.trim(), stats);
         await sendEmail({
           to: ambassador.email,
           subject,

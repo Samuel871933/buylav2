@@ -23,7 +23,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: 'Programme ambassadeur',
     question: "Qu'est-ce que le cashback Buyla ?",
     answer:
-      "Le cashback est un avantage réservé aux acheteurs sur Buyla. Après chaque achat validé (hors période de rétractation de 14 jours), l'acheteur reçoit un pourcentage du montant de sa commande sous forme de crédit Buyla. Ce crédit est utilisable sur ses prochains achats. Le taux de cashback varie selon les produits et les promotions en cours, et est affiché clairement sur chaque fiche produit.",
+      "Le cashback est un avantage réservé aux acheteurs qui passent par les liens Buyla. Après chaque achat validé sur un site partenaire (hors période de rétractation), l'acheteur reçoit un pourcentage du montant de sa commande sous forme de crédit sur son portefeuille Buyla. Ce crédit est retirable une fois le seuil minimum atteint. Le taux de cashback varie selon les marchands et programmes partenaires.",
   },
   {
     category: 'Gains et paiements',
@@ -68,10 +68,10 @@ const FAQ_ITEMS: FaqItem[] = [
       "Oui. Les commissions perçues en tant qu'ambassadeur Buyla constituent des revenus imposables en France. Ils doivent être déclarés dans la catégorie « Bénéfices Non Commerciaux » (BNC). Si vos revenus annuels dépassent 77 700 €, vous devez opter pour le régime réel. Pour les montants inférieurs, le régime micro-BNC avec abattement de 34 % s'applique. Buyla vous fournit un récapitulatif annuel téléchargeable dans votre tableau de bord. Pour les ambassadeurs ayant perçu plus de 600 € dans l'année, Buyla transmet automatiquement les données à l'administration fiscale conformément à l'article 242 bis du CGI.",
   },
   {
-    category: 'Produits',
-    question: "Quels types de produits puis-je promouvoir sur Buyla ?",
+    category: 'Programme ambassadeur',
+    question: "Quels marchands puis-je promouvoir via Buyla ?",
     answer:
-      "Buyla propose un catalogue de produits dropshipping sélectionnés par notre équipe dans plusieurs catégories : maison & décoration, mode & accessoires, beauté & bien-être, high-tech & gadgets, sport & outdoor. Tous les produits répondent à nos standards qualité et sont fournis par des partenaires vérifiés. Vous pouvez promouvoir l'intégralité du catalogue ou cibler des produits spécifiques selon votre niche. Des offres exclusives et des produits en avant-première sont régulièrement proposés aux ambassadeurs les plus actifs.",
+      "Buyla est partenaire de nombreuses plateformes d'affiliation et marchands de confiance : Amazon, Fnac, Sephora, Zalando, Booking, Decathlon, Naturecan, NutriProfits et bien d'autres. Depuis votre tableau de bord, vous pouvez générer des liens personnalisés vers n'importe quel produit de ces marchands partenaires. Vous n'avez qu'à coller l'URL du produit et notre système génère automatiquement votre lien de tracking affilié.",
   },
 ];
 
@@ -112,8 +112,10 @@ export default function FaqPage() {
     : FAQ_ITEMS;
 
   return (
-    <div className="py-12">
-      <Container className="max-w-4xl">
+    <div className="relative overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-accent-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary-400/10 blur-3xl" />
+      <Container className="relative max-w-4xl">
         <PageHeader
           title={t('title')}
           description={t('description')}

@@ -19,6 +19,7 @@ interface PortalData {
 interface RedirectCountdownProps {
   portal: PortalData;
   ambassadorRef?: string;
+  productUrl?: string;
 }
 
 function getCookie(name: string): string | undefined {
@@ -31,6 +32,7 @@ function getCookie(name: string): string | undefined {
 export default function RedirectCountdown({
   portal,
   ambassadorRef,
+  productUrl,
 }: RedirectCountdownProps) {
   const t = useTranslations('redirect');
   const [seconds, setSeconds] = useState(COUNTDOWN_SECONDS);
@@ -54,6 +56,7 @@ export default function RedirectCountdown({
             visitor_id: visitorId || 'anonymous',
             ambassador_ref: ambassadorRef || '',
             program_id: portal.program_id,
+            product_url: productUrl || undefined,
           }),
         });
 
@@ -73,7 +76,7 @@ export default function RedirectCountdown({
     }
 
     trackClick();
-  }, [ambassadorRef, portal.program_id]);
+  }, [ambassadorRef, portal.program_id, productUrl]);
 
   // -----------------------------------------------------------------------
   // Countdown + redirect

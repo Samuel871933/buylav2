@@ -5,7 +5,8 @@ export interface UserAttributes {
   id: string;
   email: string;
   password_hash: string | null;
-  name: string;
+  firstname: string;
+  lastname: string;
   role: 'ambassador' | 'buyer' | 'admin';
   referral_code: string;
   referred_by: string | null;
@@ -41,7 +42,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   declare id: string;
   declare email: string;
   declare password_hash: string | null;
-  declare name: string;
+  declare firstname: string;
+  declare lastname: string;
   declare role: 'ambassador' | 'buyer' | 'admin';
   declare referral_code: string;
   declare referred_by: string | null;
@@ -73,8 +75,12 @@ User.init(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-    name: {
-      type: DataTypes.STRING(100),
+    firstname: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    lastname: {
+      type: DataTypes.STRING(50),
       allowNull: false,
     },
     role: {

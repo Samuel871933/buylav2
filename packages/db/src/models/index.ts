@@ -52,7 +52,11 @@ export type { DisputeAttributes, DisputeCreationAttributes } from './dispute.mod
 export { FraudFlag } from './fraud-flag.model';
 export type { FraudFlagAttributes, FraudFlagCreationAttributes } from './fraud-flag.model';
 
+export { PasswordResetToken } from './password-reset-token.model';
+export type { PasswordResetTokenAttributes, PasswordResetTokenCreationAttributes } from './password-reset-token.model';
+
 import { User } from './user.model';
+import { PasswordResetToken } from './password-reset-token.model';
 import { Notification } from './notification.model';
 import { AffiliateProgram } from './affiliate-program.model';
 import { RedirectPortal } from './redirect-portal.model';
@@ -169,3 +173,7 @@ CashbackTransaction.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 // CashbackTransaction <-> Conversion
 CashbackTransaction.belongsTo(Conversion, { foreignKey: 'conversion_id', as: 'conversion' });
 Conversion.hasMany(CashbackTransaction, { foreignKey: 'conversion_id', as: 'cashbackTransactions' });
+
+// PasswordResetToken <-> User
+User.hasMany(PasswordResetToken, { foreignKey: 'user_id', as: 'resetTokens' });
+PasswordResetToken.belongsTo(User, { foreignKey: 'user_id', as: 'user' });

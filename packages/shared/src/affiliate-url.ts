@@ -40,13 +40,21 @@ export function buildAffiliateRedirectUrl(
     subId = (program.sub_id_format || '{REF}').replace('{REF}', ambassadorRef);
   }
 
+  // When {PRODUCT_URL} starts the template, it's the base URL (use raw).
+  // When embedded as a param (e.g. &p={PRODUCT_URL}), encode it.
+  const resolvedProductUrl = productUrl || program.base_url || '';
+  const templateStartsWithProduct = program.url_template.startsWith('{PRODUCT_URL}');
+
   let url = program.url_template
     .replace('{BASE_URL}', program.base_url || '')
     .replace('{AFFILIATE_TAG}', program.api_key || '')
     .replace('{AFF_ID}', program.api_key || '')
     .replace('{MID}', program.notes || '')
     .replace('{SUB_ID}', subId || '')
-    .replace('{PRODUCT_URL}', encodeURIComponent(productUrl || ''));
+    .replace(
+      '{PRODUCT_URL}',
+      templateStartsWithProduct ? resolvedProductUrl : encodeURIComponent(resolvedProductUrl),
+    );
 
   return { url, subIdSent: subId };
 }
