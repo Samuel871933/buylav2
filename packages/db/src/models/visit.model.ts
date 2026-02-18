@@ -49,7 +49,7 @@ Visit.init(
       allowNull: false,
     },
     ambassador_id: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
     },

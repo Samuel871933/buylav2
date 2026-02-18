@@ -52,7 +52,7 @@ PayoutInfo.init(
       primaryKey: true,
     },
     user_id: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: false,
       unique: true,
       references: { model: 'users', key: 'id' },

@@ -57,7 +57,7 @@ Dispute.init(
       references: { model: 'conversions', key: 'id' },
     },
     user_id: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
     },
@@ -79,7 +79,7 @@ Dispute.init(
       allowNull: true,
     },
     admin_id: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'users', key: 'id' },
     },

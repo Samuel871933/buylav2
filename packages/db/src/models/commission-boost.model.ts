@@ -58,7 +58,7 @@ CommissionBoost.init(
       primaryKey: true,
     },
     user_id: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'users', key: 'id' },
     },
@@ -97,7 +97,7 @@ CommissionBoost.init(
       defaultValue: true,
     },
     created_by: {
-      type: DataTypes.CHAR(36),
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
     },
